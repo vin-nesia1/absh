@@ -1,0 +1,376 @@
+# TERMS OF SERVICE & PRIVACY POLICY
+## SUBDOMAIN GRATIS VIN NESIA
+
+---
+
+# 📋 TERMS OF SERVICE
+
+**Efektif sejak: 1 Agustus 2024**
+**Terakhir diperbarui: 3 Agustus 2024**
+
+Selamat datang di **SUBDOMAIN GRATIS VIN NESIA** (selanjutnya disebut "Layanan", "Kami", atau "VIN NESIA"). Dengan menggunakan layanan kami di `subdomain.vinnesia.my.id`, Anda menyetujui syarat dan ketentuan berikut.
+
+## 1. 🎯 **DEFINISI LAYANAN**
+
+### 1.1 Layanan Yang Disediakan
+- **Subdomain Gratis**: Kami menyediakan subdomain dengan format `*.vinnesia.my.id` secara gratis untuk tujuan nirlaba/non-komersial
+- **DNS Management**: Layanan konfigurasi DNS records (A, AAAA, CNAME, MX, TXT) kecuali NS (Name Server)
+- **Dukungan Teknis**: Support melalui email admin@vinnesia.my.id dan support@vinnesia.my.id
+
+### 1.2 Target Pengguna
+Layanan ini ditujukan khusus untuk:
+- Individu yang tidak mampu membeli domain berbayar
+- Pengguna dengan tujuan nirlaba/non-komersial
+- Developer yang membutuhkan subdomain untuk pembelajaran atau portfolio
+- Organisasi non-profit dan komunitas
+
+## 2. 🚫 **PEMBATASAN PENGGUNAAN**
+
+### 2.1 Konten Yang Dilarang
+Anda **TIDAK DIPERBOLEHKAN** menggunakan subdomain untuk:
+- Konten dewasa, pornografi, atau NSFW
+- Aktivitas ilegal atau melanggar hukum Indonesia dan internasional
+- Spam, phishing, malware, atau aktivitas berbahaya lainnya
+- Pelanggaran hak cipta atau kekayaan intelektual
+- Hate speech, diskriminasi, atau ujaran kebencian
+- Perjudian online atau aktivitas betting
+- Penipuan atau skema piramida
+- Tujuan yang merugikan reputasi VIN NESIA
+
+### 2.2 Penggunaan Komersial
+- **Tujuan komersial WAJIB** mendapat persetujuan admin terlebih dahulu
+- Hubungi **admin@vinnesia.my.id** atau **Vin.nesia.id@gmail.com** untuk diskusi bagi hasil
+- Penggunaan komersial tanpa approval dapat mengakibatkan **suspense subdomain**
+- Bagi hasil ditentukan berdasarkan skala bisnis dan agreement dengan admin
+
+### 2.3 Resource Limits
+- Kami tidak membatasi bandwidth atau traffic
+- Namun, penggunaan yang berlebihan dan merugikan server dapat dikenakan pembatasan
+- Aktivitas yang mengganggu performa keseluruhan sistem akan di-review
+
+## 3. ✅ **PROSES APPROVAL**
+
+### 3.1 Syarat Pengajuan
+Untuk mendapatkan subdomain, Anda harus:
+- Mendaftar dengan akun sosial media (Google, GitHub, Discord)
+- Mengisi form request dengan lengkap dan jujur
+- Memberikan deskripsi project yang jelas (minimal 50 karakter)
+- Menyertakan link project atau repository (opsional tapi direkomendasikan)
+
+### 3.2 Review Process
+- Semua request akan di-review dalam **1-3 hari kerja**
+- Admin berhak menolak request tanpa memberikan alasan spesifik
+- Request yang tidak lengkap atau mencurigakan akan ditolak
+- Keputusan admin bersifat final dan tidak dapat diganggu gugat
+
+### 3.3 Kriteria Penerimaan
+Request akan lebih mudah diterima jika:
+- Deskripsi project jelas dan bermanfaat
+- Memiliki repository GitHub atau demo yang dapat diakses
+- Tujuan penggunaan sesuai dengan misi VIN NESIA
+- User memiliki riwayat positif di platform
+
+## 4. 🔧 **KEBIJAKAN DNS & TEKNIS**
+
+### 4.1 DNS Records Yang Didukung
+- **A Record**: IPv4 address
+- **AAAA Record**: IPv6 address
+- **CNAME Record**: Canonical name (alias)
+- **MX Record**: Mail exchange
+- **TXT Record**: Text records
+- **NS Record**: TIDAK DIDUKUNG (reserved untuk VIN NESIA)
+
+### 4.2 Perubahan DNS
+- Perubahan DNS dapat dilakukan melalui dashboard user
+- Propagasi DNS membutuhkan waktu 0-24 jam
+- Kami menggunakan Cloudflare untuk CDN dan keamanan
+
+### 4.3 SSL Certificate
+- SSL certificate otomatis disediakan melalui Cloudflare
+- HTTPS enforced untuk semua subdomain
+- Tidak ada biaya tambahan untuk SSL
+
+## 5. ⏰ **MASA AKTIF & PERPANJANGAN**
+
+### 5.1 Masa Aktif
+- Subdomain berlaku untuk **1 tahun** sejak approval
+- Perpanjangan dapat dilakukan **30 hari** sebelum expired
+- Subdomain yang tidak diperpanjang akan dihapus secara otomatis
+
+### 5.2 Perpanjangan
+- Perpanjangan **GRATIS** untuk tujuan nirlaba
+- Request perpanjangan melalui dashboard atau email
+- Admin berhak menolak perpanjangan jika melanggar TOS
+
+## 6. 🚨 **PENANGGUHAN & PENGHAPUSAN**
+
+### 6.1 Penangguhan Sementara
+Subdomain dapat ditangguhkan jika:
+- Melanggar terms of service
+- Laporan abuse dari pihak ketiga
+- Penggunaan resource berlebihan
+- Aktivitas mencurigakan
+
+### 6.2 Penghapusan Permanen
+Subdomain akan dihapus secara permanen jika:
+- Pelanggaran serius terhadap TOS
+- Tidak merespon peringatan dalam 7 hari
+- Terbukti melakukan aktivitas ilegal
+- Request penghapusan dari user sendiri
+
+### 6.3 Proses Appeal
+- User dapat mengajukan banding melalui support@vinnesia.my.id
+- Sertakan penjelasan dan bukti yang relevan
+- Keputusan final tetap di tangan admin
+
+## 7. 💝 **DONASI & DUKUNGAN**
+
+### 7.1 Donasi Sukarela
+- Donasi bersifat **100% sukarela**
+- Tidak ada kewajiban atau tekanan untuk berdonasi
+- Donasi membantu operasional server dan pengembangan layanan
+
+### 7.2 Cara Donasi
+- Upload screenshot bukti transfer melalui dashboard
+- Gunakan QRIS yang tersedia di website
+- Admin akan memverifikasi donasi dalam 1-3 hari
+
+### 7.3 Transparansi
+- Laporan penggunaan dana donasi akan dipublikasikan berkala
+- Semua donasi digunakan untuk operasional dan pengembangan layanan
+
+## 8. 🔒 **KEAMANAN & BACKUP**
+
+### 8.1 Keamanan Data
+- Kami menggunakan enkripsi dan security best practices
+- Data user dilindungi sesuai privacy policy
+- Akses admin dibatasi dan diaudit
+
+### 8.2 Backup & Recovery
+- DNS records di-backup secara otomatis
+- Kami tidak menyimpan konten website user
+- User bertanggung jawab atas backup konten mereka sendiri
+
+## 9. 📞 **KONTAK & DUKUNGAN**
+
+### 9.1 Kontak Resmi
+- **Admin**: admin@vinnesia.my.id
+- **Support**: support@vinnesia.my.id
+- **Business**: Vin.nesia.id@gmail.com
+
+### 9.2 Response Time
+- Email support dijawab dalam 1-3 hari kerja
+- Emergency issues akan diprioritaskan
+- Gunakan subject yang jelas dan deskriptif
+
+## 10. 📝 **PERUBAHAN TERMS**
+
+### 10.1 Update Policy
+- Terms dapat diubah sewaktu-waktu dengan pemberitahuan 30 hari
+- Perubahan akan dinotifikasi melalui email dan website
+- Penggunaan berkelanjutan dianggap menyetujui perubahan
+
+### 10.2 Efektivitas
+- Terms ini berlaku sejak tanggal efektif di atas
+- User yang sudah terdaftar sebelumnya terikat dengan terms terbaru
+
+---
+
+# 🔐 PRIVACY POLICY
+
+**Efektif sejak: 1 Agustus 2024**
+**Terakhir diperbarui: 3 Agustus 2024**
+
+Privacy Policy ini menjelaskan bagaimana **SUBDOMAIN GRATIS VIN NESIA** mengumpulkan, menggunakan, dan melindungi informasi pribadi Anda.
+
+## 1. 📊 **INFORMASI YANG DIKUMPULKAN**
+
+### 1.1 Data Akun
+Melalui social login, kami mengumpulkan:
+- **Nama lengkap** dari profil sosial media
+- **Email address** untuk komunikasi
+- **Avatar/foto profil** untuk identifikasi
+- **Provider login** (Google, GitHub, Discord)
+
+### 1.2 Data Subdomain
+Ketika mengajukan subdomain:
+- **Nama subdomain** yang diinginkan
+- **URL tujuan** untuk DNS pointing
+- **Deskripsi project** dan tujuan penggunaan
+- **Links project** (GitHub, demo, dll)
+
+### 1.3 Data Aktivitas
+- **Login timestamps** dan IP address
+- **Dashboard activities** dan perubahan DNS
+- **Support tickets** dan komunikasi email
+
+### 1.4 Data Donasi
+Jika berdonasi:
+- **Screenshot bukti transfer** (opsional nama donor)
+- **Jumlah donasi** untuk transparansi
+- **Pesan donor** jika disertakan
+
+## 2. 🎯 **PENGGUNAAN DATA**
+
+### 2.1 Tujuan Utama
+Data digunakan untuk:
+- **Menyediakan layanan** subdomain dan DNS management
+- **Komunikasi** terkait akun dan subdomain
+- **Support** dan troubleshooting
+- **Security** dan pencegahan abuse
+
+### 2.2 Tujuan Sekunder
+- **Statistik aggregated** untuk public display (tanpa identitas)
+- **Improvement** layanan berdasarkan usage patterns
+- **Compliance** dengan hukum yang berlaku
+
+### 2.3 Data Yang Tidak Kami Akses
+- **Konten website** yang di-host di subdomain
+- **Traffic patterns** atau analytics website user
+- **Database atau file** di hosting target
+
+## 3. 🤝 **BERBAGI DATA**
+
+### 3.1 Tidak Dijual
+- Kami **TIDAK PERNAH** menjual data pribadi user
+- Tidak ada monetisasi dari data user
+- Privasi user adalah prioritas utama
+
+### 3.2 Sharing Terbatas
+Data dapat dibagikan dalam situasi:
+- **Legal compliance** jika diminta otoritas hukum
+- **Security incidents** untuk investigasi abuse
+- **Service providers** (Supabase, Vercel, Cloudflare) dengan privacy protection
+
+### 3.3 Transparansi
+- User akan diberitahu jika ada data sharing (kecuali dilarang hukum)
+- Kami akan menolak permintaan data yang tidak berdasar hukum
+
+## 4. 🔐 **KEAMANAN DATA**
+
+### 4.1 Enkripsi
+- **Data in transit** menggunakan HTTPS/TLS
+- **Data at rest** dienkripsi di Supabase
+- **Authentication** menggunakan industry standards
+
+### 4.2 Access Control
+- **Admin access** dibatasi dan diaudit
+- **Two-factor authentication** untuk admin
+- **Regular security audits** dan penetration testing
+
+### 4.3 Data Breach
+Jika terjadi data breach:
+- User akan diberitahu dalam **72 jam**
+- Langkah mitigasi akan dijelaskan
+- Kami akan bekerja sama dengan otoritas terkait
+
+## 5. 🗑️ **PENGHAPUSAN DATA**
+
+### 5.1 Hak User
+User dapat:
+- **Menghapus akun** kapan saja melalui support
+- **Export data** mereka dalam format JSON
+- **Update informasi** melalui dashboard
+
+### 5.2 Data Retention
+- **Akun aktif**: Data disimpan selama akun aktif
+- **Akun dihapus**: Data dihapus dalam 30 hari
+- **Legal requirements**: Beberapa data mungkin perlu disimpan lebih lama
+
+### 5.3 Automated Deletion
+- **Inactive accounts** (1 tahun tidak login) akan dihapus otomatis
+- **Expired subdomains** dan data terkait dihapus setelah 90 hari
+
+## 6. 🍪 **COOKIES & TRACKING**
+
+### 6.1 Cookies Yang Digunakan
+- **Authentication cookies** untuk login session
+- **Functional cookies** untuk preferences
+- **TIDAK menggunakan** tracking cookies untuk advertising
+
+### 6.2 Third-Party Services
+- **Supabase**: Database dan authentication
+- **Vercel**: Hosting dan analytics
+- **Cloudflare**: CDN dan security
+- Semua mengikuti privacy policy masing-masing
+
+## 7. 🌍 **TRANSFER DATA INTERNASIONAL**
+
+### 7.1 Data Location
+- **Primary servers**: Asia-Pacific region
+- **Backup servers**: Multiple geographic locations
+- **CDN**: Global distribution melalui Cloudflare
+
+### 7.2 Protection
+- Transfer data mengikuti **international privacy standards**
+- **GDPR compliance** untuk user dari EU
+- **Adequate protection** untuk semua transfer
+
+## 8. 👶 **PERLINDUNGAN ANAK**
+
+### 8.1 Age Requirement
+- Layanan untuk **13 tahun ke atas**
+- User di bawah 18 tahun perlu **parental consent**
+- Kami tidak sengaja mengumpulkan data anak di bawah 13 tahun
+
+### 8.2 Parental Rights
+- Orang tua dapat **request penghapusan** data anak
+- Kontak support@vinnesia.my.id untuk keperluan ini
+
+## 9. 📧 **KOMUNIKASI & MARKETING**
+
+### 9.1 Email Communications
+- **Service notifications**: Updates penting tentang akun
+- **Security alerts**: Pemberitahuan keamanan
+- **Newsletter**: Hanya jika user opt-in
+
+### 9.2 Opt-Out
+- User dapat **unsubscribe** dari komunikasi marketing
+- Service notifications penting tidak dapat di-disable
+- Update preferences melalui dashboard
+
+## 10. 🔄 **PERUBAHAN PRIVACY POLICY**
+
+### 10.1 Notification
+- Perubahan akan diberitahu **30 hari sebelumnya**
+- Email notification ke semua user
+- Highlight di website dan dashboard
+
+### 10.2 Consent
+- Penggunaan berkelanjutan dianggap **menyetujui perubahan**
+- User dapat menghapus akun jika tidak setuju
+- Perubahan signifikan memerlukan explicit consent
+
+## 11. 📞 **KONTAK PRIVACY**
+
+### 11.1 Data Protection Officer
+- **Email**: admin@vinnesia.my.id
+- **Subject**: "[PRIVACY] Your inquiry"
+- **Response time**: 5-7 hari kerja
+
+### 11.2 Rights & Complaints
+Jika ada masalah privacy:
+1. Hubungi kami terlebih dahulu
+2. Jika tidak puas, laporkan ke **Kominfo** atau otoritas terkait
+3. Kami berkomitmen untuk menyelesaikan semua masalah privacy
+
+---
+
+## 📋 **KESIMPULAN**
+
+Dengan menggunakan layanan **SUBDOMAIN GRATIS VIN NESIA**, Anda menyetujui:
+
+✅ **Terms of Service** yang berlaku
+✅ **Privacy Policy** dan pengolahan data
+✅ **Kebijakan penggunaan** dan pembatasan
+✅ **Proses review** dan approval
+✅ **Hak dan kewajiban** sebagai user
+
+**Terima kasih telah mempercayai VIN NESIA sebagai provider subdomain gratis Anda!**
+
+---
+
+*Dokumen ini dibuat dengan penuh tanggung jawab untuk melindungi hak user dan menjaga transparansi layanan. Jika ada pertanyaan, jangan ragu untuk menghubungi tim support kami.*
+
+**© 2024 SUBDOMAIN GRATIS VIN NESIA**
+**Made with 💜 for the community**

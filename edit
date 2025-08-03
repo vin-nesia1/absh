@@ -1,0 +1,839 @@
+-- ===============================================
+-- SUPABASE DATABASE SCHEMA FOR VIN NESIA
+-- SUBDOMAIN GRATIS VIN NESIA
+-- ===============================================
+
+-- Enable necessary extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ===============================================
+-- 1. USERS TABLE (extends auth.users)
+-- ===============================================
+
+CREATE TABLE public.users (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    email TEXT NOT NULL,
+    full_name TEXT,
+    avatar_url TEXT,
+    provider TEXT NOT NULL, -- 'google', 'github', 'discord'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    last_login TIMESTAMP WITH TIME ZONE,
+    is_banned BOOLEAN DEFAULT FALSE,
+    ban_reason TEXT,
+    banned_at TIMESTAMP WITH TIME ZONE,
+    banned_by UUID REFERENCES public.users(id),
+    total_subdomains INTEGER DEFAULT 0,
+    total_donations_amount DECIMAL(10,2) DEFAULT 0.00,
+    
+    CONSTRAINT users_email_check CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+);
+
+-- Create indexes for users
+CREATE INDEX idx_users_email ON public.users(email);
+CREATE INDEX idx_users_provider ON public.users(provider);
+CREATE INDEX idx_users_created_at ON public.users(created_at);
+CREATE INDEX idx_users_is_banned ON public.users(is_banned);
+
+-- ===============================================
+-- 2. SUBDOMAIN CATEGORIES TABLE
+-- ===============================================
+
+CREATE TABLE public.subdomain_categories (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    color TEXT DEFAULT '#8B5CF6',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Insert default categories
+INSERT INTO public.subdomain_categories (name, description, color) VALUES
+('personal', 'Personal Portfolio & Blog', '#8B5CF6'),
+('education', 'Educational & Learning Projects', '#10B981'),
+('nonprofit', 'Non-profit & Social Projects', '#F59E0B'),
+('opensource', 'Open Source Projects', '#06B6D4'),
+('startup', 'Startup & MVP Projects', '#EF4444'),
+('other', 'Other Projects', '#6B7280');
+
+-- ===============================================
+-- 3. SUBDOMAINS TABLE
+-- ===============================================
+
+CREATE TYPE subdomain_status AS ENUM ('pending', 'active', 'suspended', 'expired', 'rejected');
+CREATE TYPE target_type AS ENUM ('website', 'github', 'vercel', 'netlify', 'other');
+
+CREATE TABLE public.subdomains (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+    subdomain_name TEXT NOT NULL UNIQUE,
+    full_domain TEXT NOT NULL UNIQUE,
+    target_url TEXT NOT NULL,
+    target_type target_type DEFAULT 'website',
+    category_id UUID REFERENCES public.subdomain_categories(id),
+    project_description TEXT NOT NULL,
+    project_links JSONB DEFAULT '{}', -- {github, demo, vercel, netlify}
+    status subdomain_status DEFAULT 'pending',
+    is_commercial BOOLEAN DEFAULT FALSE,
+    
+    -- DNS Records
+    dns_records JSONB DEFAULT '{}', -- {A: [], AAAA: [], CNAME: [], MX: [], TXT: []}
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    approved_at TIMESTAMP WITH TIME ZONE,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    last_dns_update TIMESTAMP WITH TIME ZONE,
+    
+    -- Admin fields
+    approved_by UUID REFERENCES public.users(id),
+    rejected_by UUID REFERENCES public.users(id),
+    rejection_reason TEXT,
+    admin_notes TEXT,
+    
+    -- Stats
+    total_requests INTEGER DEFAULT 0,
+    last_checked TIMESTAMP WITH TIME ZONE,
+    
+    CONSTRAINT subdomains_subdomain_name_check CHECK (subdomain_name ~* '^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$'),
+    CONSTRAINT subdomains_target_url_check CHECK (target_url ~* '^https?://.*'),
+    CONSTRAINT subdomains_description_length CHECK (char_length(project_description) >= 50)
+);
+
+-- Create indexes for subdomains
+CREATE INDEX idx_subdomains_user_id ON public.subdomains(user_id);
+CREATE INDEX idx_subdomains_status ON public.subdomains(status);
+CREATE INDEX idx_subdomains_subdomain_name ON public.subdomains(subdomain_name);
+CREATE INDEX idx_subdomains_created_at ON public.subdomains(created_at);
+CREATE INDEX idx_subdomains_expires_at ON public.subdomains(expires_at);
+CREATE INDEX idx_subdomains_is_commercial ON public.subdomains(is_commercial);
+
+-- ===============================================
+-- 4. DONATIONS TABLE
+-- ===============================================
+
+CREATE TYPE donation_status AS ENUM ('pending', 'verified', 'rejected');
+
+CREATE TABLE public.donations (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL, -- Allow anonymous donations
+    donor_name TEXT,
+    donor_email TEXT,
+    amount DECIMAL(10,2) NOT NULL,
+    currency TEXT DEFAULT 'IDR',
+    message TEXT,
+    screenshot_url TEXT, -- Supabase Storage URL
+    screenshot_filename TEXT,
+    
+    -- Status
+    status donation_status DEFAULT 'pending',
+    verified_by UUID REFERENCES public.users(id),
+    verified_at TIMESTAMP WITH TIME ZONE,
+    rejection_reason TEXT,
+    
+    -- Timestamps
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    
+    -- Metadata
+    ip_address INET,
+    user_agent TEXT,
+    
+    CONSTRAINT donations_amount_positive CHECK (amount > 0),
+    CONSTRAINT donations_donor_info CHECK (
+        (user_id IS NOT NULL) OR 
+        (donor_name IS NOT NULL AND donor_email IS NOT NULL)
+    )
+);
+
+-- Create indexes for donations
+CREATE INDEX idx_donations_user_id ON public.donations(user_id);
+CREATE INDEX idx_donations_status ON public.donations(status);
+CREATE INDEX idx_donations_created_at ON public.donations(created_at);
+CREATE INDEX idx_donations_amount ON public.donations(amount);
+
+-- ===============================================
+-- 5. NOTIFICATIONS TABLE
+-- ===============================================
+
+CREATE TYPE notification_type AS ENUM ('info', 'success', 'warning', 'error');
+
+CREATE TABLE public.notifications (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type notification_type DEFAULT 'info',
+    is_read BOOLEAN DEFAULT FALSE,
+    read_at TIMESTAMP WITH TIME ZONE,
+    
+    -- Related entity (optional)
+    related_type TEXT, -- 'subdomain', 'donation', 'system'
+    related_id UUID,
+    
+    -- Action URL (optional)
+    action_url TEXT,
+    action_label TEXT,
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE -- Auto-delete old notifications
+);
+
+-- Create indexes for notifications
+CREATE INDEX idx_notifications_user_id ON public.notifications(user_id);
+CREATE INDEX idx_notifications_is_read ON public.notifications(is_read);
+CREATE INDEX idx_notifications_created_at ON public.notifications(created_at);
+CREATE INDEX idx_notifications_expires_at ON public.notifications(expires_at);
+
+-- ===============================================
+-- 6. ADMIN LOGS TABLE
+-- ===============================================
+
+CREATE TABLE public.admin_logs (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    admin_id UUID REFERENCES public.users(id) NOT NULL,
+    action TEXT NOT NULL, -- 'approve_subdomain', 'ban_user', 'verify_donation', etc.
+    target_type TEXT, -- 'user', 'subdomain', 'donation', 'system'
+    target_id UUID,
+    details JSONB DEFAULT '{}',
+    ip_address INET,
+    user_agent TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Create indexes for admin logs
+CREATE INDEX idx_admin_logs_admin_id ON public.admin_logs(admin_id);
+CREATE INDEX idx_admin_logs_action ON public.admin_logs(action);
+CREATE INDEX idx_admin_logs_target_type ON public.admin_logs(target_type);
+CREATE INDEX idx_admin_logs_created_at ON public.admin_logs(created_at);
+
+-- ===============================================
+-- 7. SITE SETTINGS TABLE
+-- ===============================================
+
+CREATE TABLE public.site_settings (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    key TEXT NOT NULL UNIQUE,
+    value JSONB NOT NULL,
+    description TEXT,
+    category TEXT DEFAULT 'general',
+    is_public BOOLEAN DEFAULT FALSE, -- Can be accessed by non-admin users
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_by UUID REFERENCES public.users(id)
+);
+
+-- Insert default settings
+INSERT INTO public.site_settings (key, value, description, category, is_public) VALUES
+('site_name', '"SUBDOMAIN GRATIS VIN NESIA"', 'Site name', 'general', true),
+('site_description', '"Platform subdomain gratis untuk semua"', 'Site description', 'general', true),
+('max_subdomains_per_user', '3', 'Maximum subdomains per user', 'limits', false),
+('subdomain_expiry_days', '365', 'Default subdomain expiry in days', 'limits', false),
+('maintenance_mode', 'false', 'Enable maintenance mode', 'system', false),
+('registration_enabled', 'true', 'Enable user registration', 'system', false),
+('qris_image_url', '""', 'QRIS image URL for donations', 'donations', true),
+('donation_message', '"Donasi sukarela untuk operasional server"', 'Donation message', 'donations', true),
+('contact_email', '"admin@vinnesia.my.id"', 'Contact email', 'contact', true),
+('support_email', '"support@vinnesia.my.id"', 'Support email', 'contact', true);
+
+-- Create index for site settings
+CREATE INDEX idx_site_settings_key ON public.site_settings(key);
+CREATE INDEX idx_site_settings_category ON public.site_settings(category);
+
+-- ===============================================
+-- 8. SYSTEM STATS TABLE (for caching)
+-- ===============================================
+
+CREATE TABLE public.system_stats (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    stat_name TEXT NOT NULL UNIQUE,
+    stat_value JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Insert initial stats
+INSERT INTO public.system_stats (stat_name, stat_value) VALUES
+('total_users', '0'),
+('active_subdomains', '0'),
+('pending_requests', '0'),
+('total_donations', '0'),
+('total_donation_amount', '0'),
+('server_uptime', '99.9');
+
+-- ===============================================
+-- 9. CREATE FUNCTIONS
+-- ===============================================
+
+-- Function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = TIMEZONE('utc'::text, NOW());
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+-- Function to update user stats
+CREATE OR REPLACE FUNCTION update_user_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update total_subdomains for user
+    IF TG_OP = 'INSERT' AND NEW.status = 'active' THEN
+        UPDATE public.users 
+        SET total_subdomains = total_subdomains + 1 
+        WHERE id = NEW.user_id;
+    ELSIF TG_OP = 'UPDATE' AND OLD.status != 'active' AND NEW.status = 'active' THEN
+        UPDATE public.users 
+        SET total_subdomains = total_subdomains + 1 
+        WHERE id = NEW.user_id;
+    ELSIF TG_OP = 'UPDATE' AND OLD.status = 'active' AND NEW.status != 'active' THEN
+        UPDATE public.users 
+        SET total_subdomains = total_subdomains - 1 
+        WHERE id = NEW.user_id;
+    ELSIF TG_OP = 'DELETE' AND OLD.status = 'active' THEN
+        UPDATE public.users 
+        SET total_subdomains = total_subdomains - 1 
+        WHERE id = OLD.user_id;
+    END IF;
+    
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ language 'plpgsql';
+
+-- Function to update donation stats
+CREATE OR REPLACE FUNCTION update_donation_stats()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Update user donation amount
+    IF TG_OP = 'INSERT' AND NEW.status = 'verified' AND NEW.user_id IS NOT NULL THEN
+        UPDATE public.users 
+        SET total_donations_amount = total_donations_amount + NEW.amount 
+        WHERE id = NEW.user_id;
+    ELSIF TG_OP = 'UPDATE' AND OLD.status != 'verified' AND NEW.status = 'verified' AND NEW.user_id IS NOT NULL THEN
+        UPDATE public.users 
+        SET total_donations_amount = total_donations_amount + NEW.amount 
+        WHERE id = NEW.user_id;
+    ELSIF TG_OP = 'UPDATE' AND OLD.status = 'verified' AND NEW.status != 'verified' AND NEW.user_id IS NOT NULL THEN
+        UPDATE public.users 
+        SET total_donations_amount = total_donations_amount - OLD.amount 
+        WHERE id = NEW.user_id;
+    END IF;
+    
+    RETURN COALESCE(NEW, OLD);
+END;
+$$ language 'plpgsql';
+
+-- Function to create notification
+CREATE OR REPLACE FUNCTION create_notification(
+    p_user_id UUID,
+    p_title TEXT,
+    p_message TEXT,
+    p_type notification_type DEFAULT 'info',
+    p_related_type TEXT DEFAULT NULL,
+    p_related_id UUID DEFAULT NULL,
+    p_action_url TEXT DEFAULT NULL,
+    p_action_label TEXT DEFAULT NULL
+) RETURNS UUID AS $$
+DECLARE
+    notification_id UUID;
+BEGIN
+    INSERT INTO public.notifications (
+        user_id, title, message, type, related_type, related_id, action_url, action_label
+    ) VALUES (
+        p_user_id, p_title, p_message, p_type, p_related_type, p_related_id, p_action_url, p_action_label
+    ) RETURNING id INTO notification_id;
+    
+    RETURN notification_id;
+END;
+$$ language 'plpgsql';
+
+-- ===============================================
+-- 10. CREATE TRIGGERS
+-- ===============================================
+
+-- Updated_at triggers
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON public.users
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_subdomains_updated_at BEFORE UPDATE ON public.subdomains
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_donations_updated_at BEFORE UPDATE ON public.donations
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+CREATE TRIGGER update_site_settings_updated_at BEFORE UPDATE ON public.site_settings
+    FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- Stats update triggers
+CREATE TRIGGER update_user_stats_trigger 
+    AFTER INSERT OR UPDATE OR DELETE ON public.subdomains
+    FOR EACH ROW EXECUTE PROCEDURE update_user_stats();
+
+CREATE TRIGGER update_donation_stats_trigger 
+    AFTER INSERT OR UPDATE ON public.donations
+    FOR EACH ROW EXECUTE PROCEDURE update_donation_stats();
+
+-- ===============================================
+-- 11. ROW LEVEL SECURITY (RLS) POLICIES
+-- ===============================================
+
+-- Enable RLS on all tables
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.subdomains ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.donations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.system_stats ENABLE ROW LEVEL SECURITY;
+
+-- ===============================================
+-- 12. RLS POLICIES - USERS TABLE
+-- ===============================================
+
+-- Users can view their own profile
+CREATE POLICY "Users can view own profile" ON public.users
+    FOR SELECT USING (auth.uid() = id);
+
+-- Users can update their own profile
+CREATE POLICY "Users can update own profile" ON public.users
+    FOR UPDATE USING (auth.uid() = id);
+
+-- Admins can view all users
+CREATE POLICY "Admins can view all users" ON public.users
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- Admins can update all users (for ban/unban)
+CREATE POLICY "Admins can update all users" ON public.users
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- ===============================================
+-- 13. RLS POLICIES - SUBDOMAINS TABLE
+-- ===============================================
+
+-- Users can view their own subdomains
+CREATE POLICY "Users can view own subdomains" ON public.subdomains
+    FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can insert their own subdomain requests
+CREATE POLICY "Users can create subdomain requests" ON public.subdomains
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own pending subdomains
+CREATE POLICY "Users can update own pending subdomains" ON public.subdomains
+    FOR UPDATE USING (
+        auth.uid() = user_id 
+        AND status = 'pending'
+    );
+
+-- Admins can view all subdomains
+CREATE POLICY "Admins can view all subdomains" ON public.subdomains
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- Admins can update all subdomains
+CREATE POLICY "Admins can update all subdomains" ON public.subdomains
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- Public can view active subdomains (for stats)
+CREATE POLICY "Public can view active subdomains stats" ON public.subdomains
+    FOR SELECT USING (status = 'active');
+
+-- ===============================================
+-- 14. RLS POLICIES - DONATIONS TABLE
+-- ===============================================
+
+-- Users can view their own donations
+CREATE POLICY "Users can view own donations" ON public.donations
+    FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can insert their own donations
+CREATE POLICY "Users can create donations" ON public.donations
+    FOR INSERT WITH CHECK (
+        auth.uid() = user_id OR user_id IS NULL
+    );
+
+-- Admins can view all donations
+CREATE POLICY "Admins can view all donations" ON public.donations
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- Admins can update all donations (for verification)
+CREATE POLICY "Admins can update all donations" ON public.donations
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- ===============================================
+-- 15. RLS POLICIES - NOTIFICATIONS TABLE
+-- ===============================================
+
+-- Users can view their own notifications
+CREATE POLICY "Users can view own notifications" ON public.notifications
+    FOR SELECT USING (auth.uid() = user_id);
+
+-- Users can update their own notifications (mark as read)
+CREATE POLICY "Users can update own notifications" ON public.notifications
+    FOR UPDATE USING (auth.uid() = user_id);
+
+-- Admins can insert notifications for any user
+CREATE POLICY "Admins can create notifications" ON public.notifications
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- System can insert notifications (via functions)
+CREATE POLICY "System can create notifications" ON public.notifications
+    FOR INSERT WITH CHECK (true);
+
+-- ===============================================
+-- 16. RLS POLICIES - ADMIN LOGS TABLE
+-- ===============================================
+
+-- Only admins can view admin logs
+CREATE POLICY "Only admins can view admin logs" ON public.admin_logs
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- Only admins can insert admin logs
+CREATE POLICY "Only admins can create admin logs" ON public.admin_logs
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- ===============================================
+-- 17. RLS POLICIES - SITE SETTINGS TABLE
+-- ===============================================
+
+-- Public can view public settings
+CREATE POLICY "Public can view public settings" ON public.site_settings
+    FOR SELECT USING (is_public = true);
+
+-- Admins can view all settings
+CREATE POLICY "Admins can view all settings" ON public.site_settings
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- Admins can update all settings
+CREATE POLICY "Admins can update all settings" ON public.site_settings
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- ===============================================
+-- 18. RLS POLICIES - SYSTEM STATS TABLE
+-- ===============================================
+
+-- Public can view system stats
+CREATE POLICY "Public can view system stats" ON public.system_stats
+    FOR SELECT USING (true);
+
+-- Only admins can update system stats
+CREATE POLICY "Only admins can update system stats" ON public.system_stats
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- ===============================================
+-- 19. STORAGE BUCKETS & POLICIES
+-- ===============================================
+
+-- Create storage bucket for donation screenshots
+INSERT INTO storage.buckets (id, name, public) VALUES ('donation-screenshots', 'donation-screenshots', false);
+
+-- Storage policy: Users can upload their own donation screenshots
+CREATE POLICY "Users can upload donation screenshots" ON storage.objects
+    FOR INSERT WITH CHECK (
+        bucket_id = 'donation-screenshots' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+-- Storage policy: Users can view their own donation screenshots
+CREATE POLICY "Users can view own donation screenshots" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'donation-screenshots' 
+        AND auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+-- Storage policy: Admins can view all donation screenshots
+CREATE POLICY "Admins can view all donation screenshots" ON storage.objects
+    FOR SELECT USING (
+        bucket_id = 'donation-screenshots' 
+        AND EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- Create storage bucket for site assets (QRIS, logos, etc.)
+INSERT INTO storage.buckets (id, name, public) VALUES ('site-assets', 'site-assets', true);
+
+-- Storage policy: Public can view site assets
+CREATE POLICY "Public can view site assets" ON storage.objects
+    FOR SELECT USING (bucket_id = 'site-assets');
+
+-- Storage policy: Only admins can upload site assets
+CREATE POLICY "Admins can upload site assets" ON storage.objects
+    FOR INSERT WITH CHECK (
+        bucket_id = 'site-assets' 
+        AND EXISTS (
+            SELECT 1 FROM public.users 
+            WHERE id = auth.uid() 
+            AND email IN ('admin.vinnesia@gmail.com')
+        )
+    );
+
+-- ===============================================
+-- 20. UTILITY VIEWS
+-- ===============================================
+
+-- View for dashboard stats
+CREATE VIEW public.dashboard_stats AS
+SELECT 
+    'total_users' as stat_name,
+    COUNT(*)::text as stat_value
+FROM public.users WHERE is_banned = false
+UNION ALL
+SELECT 
+    'active_subdomains' as stat_name,
+    COUNT(*)::text as stat_value
+FROM public.subdomains WHERE status = 'active'
+UNION ALL
+SELECT 
+    'pending_requests' as stat_name,
+    COUNT(*)::text as stat_value
+FROM public.subdomains WHERE status = 'pending'
+UNION ALL
+SELECT 
+    'total_donations' as stat_name,
+    COUNT(*)::text as stat_value
+FROM public.donations WHERE status = 'verified'
+UNION ALL
+SELECT 
+    'total_donation_amount' as stat_name,
+    COALESCE(SUM(amount), 0)::text as stat_value
+FROM public.donations WHERE status = 'verified';
+
+-- View for user subdomain summary
+CREATE VIEW public.user_subdomain_summary AS
+SELECT 
+    u.id,
+    u.full_name,
+    u.email,
+    COUNT(s.id) as total_subdomains,
+    COUNT(CASE WHEN s.status = 'active' THEN 1 END) as active_subdomains,
+    COUNT(CASE WHEN s.status = 'pending' THEN 1 END) as pending_subdomains,
+    COUNT(CASE WHEN s.status = 'expired' THEN 1 END) as expired_subdomains,
+    MAX(s.created_at) as last_request_date
+FROM public.users u
+LEFT JOIN public.subdomains s ON u.id = s.user_id
+GROUP BY u.id, u.full_name, u.email;
+
+-- ===============================================
+-- 21. SCHEDULED JOBS (via pg_cron if available)
+-- ===============================================
+
+-- Note: These would need to be set up separately if pg_cron is available
+-- or handled via application-level cron jobs
+
+-- Job to expire old subdomains
+-- SELECT cron.schedule('expire-subdomains', '0 2 * * *', 
+--     'UPDATE public.subdomains SET status = ''expired'' WHERE expires_at < NOW() AND status = ''active''');
+
+-- Job to clean old notifications
+-- SELECT cron.schedule('clean-notifications', '0 3 * * *', 
+--     'DELETE FROM public.notifications WHERE expires_at < NOW()');
+
+-- Job to update system stats cache
+-- SELECT cron.schedule('update-stats', '*/15 * * * *', 
+--     'REFRESH MATERIALIZED VIEW CONCURRENTLY public.dashboard_stats');
+
+-- ===============================================
+-- 22. INITIAL ADMIN USER SETUP
+-- ===============================================
+
+-- This will be handled via the application after user signs up
+-- with admin.vinnesia@gmail.com
+
+-- ===============================================
+-- 23. SAMPLE DATA (for testing)
+-- ===============================================
+
+-- Insert sample categories (already done above)
+
+-- Note: Real user data will be inserted when users sign up via Supabase Auth
+
+-- Sample site settings for testing
+UPDATE public.site_settings 
+SET value = '"https://example.com/qris.png"' 
+WHERE key = 'qris_image_url';
+
+-- ===============================================
+-- 24. PERFORMANCE OPTIMIZATIONS
+-- ===============================================
+
+-- Create partial indexes for better performance
+CREATE INDEX CONCURRENTLY idx_subdomains_active 
+ON public.subdomains(user_id, created_at) 
+WHERE status = 'active';
+
+CREATE INDEX CONCURRENTLY idx_subdomains_pending 
+ON public.subdomains(created_at) 
+WHERE status = 'pending';
+
+CREATE INDEX CONCURRENTLY idx_notifications_unread 
+ON public.notifications(user_id, created_at) 
+WHERE is_read = false;
+
+CREATE INDEX CONCURRENTLY idx_donations_verified 
+ON public.donations(created_at, amount) 
+WHERE status = 'verified';
+
+-- ===============================================
+-- 25. SECURITY ENHANCEMENTS
+-- ===============================================
+
+-- Create function to check admin privileges
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM public.users 
+        WHERE id = auth.uid() 
+        AND email IN ('admin.vinnesia@gmail.com')
+        AND is_banned = false
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create function to log admin actions
+CREATE OR REPLACE FUNCTION log_admin_action(
+    p_action TEXT,
+    p_target_type TEXT DEFAULT NULL,
+    p_target_id UUID DEFAULT NULL,
+    p_details JSONB DEFAULT '{}'
+) RETURNS VOID AS $$
+BEGIN
+    IF is_admin() THEN
+        INSERT INTO public.admin_logs (admin_id, action, target_type, target_id, details)
+        VALUES (auth.uid(), p_action, p_target_type, p_target_id, p_details);
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ===============================================
+-- 26. FINAL NOTES & NEXT STEPS
+-- ===============================================
+
+/*
+NEXT STEPS AFTER RUNNING THIS SCHEMA:
+
+1. **Supabase Dashboard Setup:**
+   - Enable email auth providers (Google, GitHub, Discord)
+   - Configure SMTP for email notifications
+   - Set up storage buckets and policies
+   - Configure realtime subscriptions
+
+2. **Application Environment Variables:**
+   - NEXT_PUBLIC_SUPABASE_URL
+   - NEXT_PUBLIC_SUPABASE_ANON_KEY
+   - SUPABASE_SERVICE_ROLE_KEY (for admin operations)
+   - ADMIN_EMAILS=admin.vinnesia@gmail.com
+
+3. **DNS Configuration:**
+   - Set up Cloudflare API for automated DNS management
+   - Configure webhook endpoints for DNS updates
+
+4. **Monitoring & Alerts:**
+   - Set up database monitoring
+   - Configure error tracking
+   - Set up uptime monitoring
+
+5. **Backup Strategy:**
+   - Configure automated backups
+   - Test restore procedures
+   - Document disaster recovery
+
+6. **Security Hardening:**
+   - Review and test all RLS policies
+   - Set up rate limiting
+   - Configure CORS properly
+   - Enable audit logging
+
+7. **Performance Optimization:**
+   - Monitor query performance
+   - Add indexes as needed
+   - Set up caching strategy
+   - Configure CDN for static assets
+*/
+
+-- ===============================================
+-- SCHEMA CREATION COMPLETE ✅
+-- ===============================================
+
+COMMENT ON SCHEMA public IS 'SUBDOMAIN GRATIS VIN NESIA - Complete database schema for subdomain management platform';
+
+-- Grant necessary permissions
+GRANT USAGE ON SCHEMA public TO authenticated, anon;
+GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;

@@ -1,0 +1,494 @@
+import React, { useState } from 'react';
+import { Globe, User, Mail, Link, FileText, Github, ExternalLink, CheckCircle, AlertCircle, Info } from 'lucide-react';
+
+const SubdomainRequestForm = () => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    subdomainName: '',
+    targetUrl: '',
+    targetType: 'website',
+    projectDescription: '',
+    projectLinks: {
+      github: '',
+      demo: '',
+      vercel: '',
+      netlify: ''
+    },
+    purpose: 'personal',
+    isCommercial: false,
+    agreeTerms: false,
+    agreePolicy: false
+  });
+
+  const [errors, setErrors] = useState({});
+  const [isChecking, setIsChecking] = useState(false);
+  const [subdomainAvailable, setSubdomainAvailable] = useState(null);
+
+  const targetTypes = [
+    { value: 'website', label: 'Website/Blog', icon: Globe },
+    { value: 'github', label: 'GitHub Pages', icon: Github },
+    { value: 'vercel', label: 'Vercel App', icon: ExternalLink },
+    { value: 'netlify', label: 'Netlify App', icon: ExternalLink },
+    { value: 'other', label: 'Lainnya', icon: Link }
+  ];
+
+  const purposeOptions = [
+    { value: 'personal', label: 'Personal/Portfolio' },
+    { value: 'education', label: 'Pendidikan/Belajar' },
+    { value: 'nonprofit', label: 'Non-profit/Sosial' },
+    { value: 'opensource', label: 'Open Source Project' },
+    { value: 'startup', label: 'Startup/MVP' },
+    { value: 'other', label: 'Lainnya' }
+  ];
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    
+    if (name.includes('.')) {
+      const [parent, child] = name.split('.');
+      setFormData(prev => ({
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [child]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
+
+    // Clear errors when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const checkSubdomainAvailability = async () => {
+    if (!formData.subdomainName) return;
+    
+    setIsChecking(true);
+    
+    // Simulate API call
+    setTimeout(() => {
+      const unavailableSubdomains = ['www', 'api', 'admin', 'mail', 'ftp', 'test', 'demo'];
+      const isAvailable = !unavailableSubdomains.includes(formData.subdomainName.toLowerCase());
+      setSubdomainAvailable(isAvailable);
+      setIsChecking(false);
+    }, 1000);
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.fullName.trim()) {
+      newErrors.fullName = 'Nama lengkap wajib diisi';
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email wajib diisi';
+    }
+
+    if (!formData.subdomainName.trim()) {
+      newErrors.subdomainName = 'Nama subdomain wajib diisi';
+    } else if (!/^[a-z0-9-]+$/.test(formData.subdomainName)) {
+      newErrors.subdomainName = 'Hanya boleh huruf kecil, angka, dan tanda hubung';
+    }
+
+    if (!formData.targetUrl.trim()) {
+      newErrors.targetUrl = 'URL tujuan wajib diisi';
+    } else if (!/^https?:\/\/.+/.test(formData.targetUrl)) {
+      newErrors.targetUrl = 'URL harus dimulai dengan http:// atau https://';
+    }
+
+    if (!formData.projectDescription.trim()) {
+      newErrors.projectDescription = 'Deskripsi project wajib diisi';
+    } else if (formData.projectDescription.length < 50) {
+      newErrors.projectDescription = 'Deskripsi minimal 50 karakter';
+    }
+
+    if (!formData.agreeTerms) {
+      newErrors.agreeTerms = 'Anda harus menyetujui Terms of Service';
+    }
+
+    if (!formData.agreePolicy) {
+      newErrors.agreePolicy = 'Anda harus menyetujui Privacy Policy';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      console.log('Form submitted:', formData);
+      alert('Request subdomain berhasil dikirim! Kami akan review dalam 1-3 hari kerja.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 text-white py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <Globe className="w-16 h-16 text-purple-400 mx-auto mb-4" />
+          <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+            Request Subdomain Gratis
+          </h1>
+          <p className="text-xl text-slate-300 max-w-2xl mx-auto">
+            Isi form di bawah dengan lengkap dan jujur. Semua subdomain akan di-review oleh admin.
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Personal Information */}
+          <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-8 border border-purple-500/20">
+            <h2 className="text-2xl font-semibold mb-6 flex items-center">
+              <User className="w-6 h-6 text-purple-400 mr-2" />
+              Informasi Pribadi
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Nama Lengkap *
+                </label>
+                <input
+                  type="text"
+                  name="fullName"
+                  value={formData.fullName}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400"
+                  placeholder="Masukkan nama lengkap Anda"
+                />
+                {errors.fullName && (
+                  <p className="text-red-400 text-sm mt-1">{errors.fullName}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400"
+                  placeholder="email@example.com"
+                />
+                {errors.email && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Subdomain Configuration */}
+          <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-8 border border-purple-500/20">
+            <h2 className="text-2xl font-semibold mb-6 flex items-center">
+              <Globe className="w-6 h-6 text-cyan-400 mr-2" />
+              Konfigurasi Subdomain
+            </h2>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Nama Subdomain *
+                </label>
+                <div className="flex">
+                  <input
+                    type="text"
+                    name="subdomainName"
+                    value={formData.subdomainName}
+                    onChange={handleInputChange}
+                    onBlur={checkSubdomainAvailability}
+                    className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-l-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400"
+                    placeholder="namaanda"
+                  />
+                  <div className="px-4 py-3 bg-slate-700 border border-l-0 border-slate-600 rounded-r-lg text-slate-300">
+                    .vinnesia.my.id
+                  </div>
+                </div>
+                
+                {isChecking && (
+                  <p className="text-yellow-400 text-sm mt-1 flex items-center">
+                    <Info className="w-4 h-4 mr-1" />
+                    Mengecek ketersediaan...
+                  </p>
+                )}
+                
+                {subdomainAvailable === true && (
+                  <p className="text-green-400 text-sm mt-1 flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-1" />
+                    Subdomain tersedia!
+                  </p>
+                )}
+                
+                {subdomainAvailable === false && (
+                  <p className="text-red-400 text-sm mt-1 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    Subdomain tidak tersedia atau reserved
+                  </p>
+                )}
+                
+                {errors.subdomainName && (
+                  <p className="text-red-400 text-sm mt-1">{errors.subdomainName}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  URL Tujuan *
+                </label>
+                <input
+                  type="url"
+                  name="targetUrl"
+                  value={formData.targetUrl}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400"
+                  placeholder="https://username.github.io/project atau https://myapp.vercel.app"
+                />
+                {errors.targetUrl && (
+                  <p className="text-red-400 text-sm mt-1">{errors.targetUrl}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Jenis Target
+                </label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {targetTypes.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <label key={type.value} className="cursor-pointer">
+                        <input
+                          type="radio"
+                          name="targetType"
+                          value={type.value}
+                          checked={formData.targetType === type.value}
+                          onChange={handleInputChange}
+                          className="sr-only"
+                        />
+                        <div className={`p-3 rounded-lg border-2 transition-all ${
+                          formData.targetType === type.value
+                            ? 'border-purple-500 bg-purple-500/10'
+                            : 'border-slate-600 bg-slate-800/50 hover:border-slate-500'
+                        }`}>
+                          <Icon className="w-5 h-5 mx-auto mb-1 text-purple-400" />
+                          <div className="text-sm text-center">{type.label}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Project Information */}
+          <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-8 border border-purple-500/20">
+            <h2 className="text-2xl font-semibold mb-6 flex items-center">
+              <FileText className="w-6 h-6 text-green-400 mr-2" />
+              Informasi Project
+            </h2>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Tujuan Penggunaan *
+                </label>
+                <select
+                  name="purpose"
+                  value={formData.purpose}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
+                >
+                  {purposeOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Deskripsi Project *
+                </label>
+                <textarea
+                  name="projectDescription"
+                  value={formData.projectDescription}
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400"
+                  placeholder="Jelaskan project Anda, teknologi yang digunakan, dan manfaatnya untuk pengguna. Minimal 50 karakter."
+                />
+                <div className="text-sm text-slate-400 mt-1">
+                  {formData.projectDescription.length}/500 karakter
+                </div>
+                {errors.projectDescription && (
+                  <p className="text-red-400 text-sm mt-1">{errors.projectDescription}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-4">
+                  Link Project (Opsional)
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">GitHub Repository</label>
+                    <input
+                      type="url"
+                      name="projectLinks.github"
+                      value={formData.projectLinks.github}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400 text-sm"
+                      placeholder="https://github.com/username/repo"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Demo Live</label>
+                    <input
+                      type="url"
+                      name="projectLinks.demo"
+                      value={formData.projectLinks.demo}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400 text-sm"
+                      placeholder="https://demo.example.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Vercel App</label>
+                    <input
+                      type="url"
+                      name="projectLinks.vercel"
+                      value={formData.projectLinks.vercel}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400 text-sm"
+                      placeholder="https://myapp.vercel.app"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Netlify App</label>
+                    <input
+                      type="url"
+                      name="projectLinks.netlify"
+                      value={formData.projectLinks.netlify}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400 text-sm"
+                      placeholder="https://myapp.netlify.app"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Commercial Usage */}
+          <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-8 border border-yellow-500/20">
+            <h2 className="text-2xl font-semibold mb-4 flex items-center">
+              <Info className="w-6 h-6 text-yellow-400 mr-2" />
+              Penggunaan Komersial
+            </h2>
+            
+            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-6">
+              <p className="text-yellow-200 text-sm">
+                <strong>Penting:</strong> Subdomain gratis hanya untuk tujuan nirlaba/non-komersial. 
+                Jika ada rencana monetisasi atau komersial, wajib hubungi admin untuk diskusi bagi hasil.
+              </p>
+            </div>
+
+            <label className="flex items-start space-x-3 cursor-pointer">
+              <input
+                type="checkbox"
+                name="isCommercial"
+                checked={formData.isCommercial}
+                onChange={handleInputChange}
+                className="mt-1 w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+              />
+              <div>
+                <div className="text-white font-medium">
+                  Saya berencana menggunakan subdomain ini untuk tujuan komersial
+                </div>
+                <div className="text-slate-400 text-sm mt-1">
+                  Dengan centang ini, saya setuju untuk menghubungi admin@vinnesia.my.id untuk diskusi bagi hasil
+                </div>
+              </div>
+            </label>
+          </div>
+
+          {/* Terms and Conditions */}
+          <div className="bg-slate-900/50 backdrop-blur-sm rounded-xl p-8 border border-purple-500/20">
+            <h2 className="text-2xl font-semibold mb-6">Persetujuan</h2>
+            
+            <div className="space-y-4">
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="agreeTerms"
+                  checked={formData.agreeTerms}
+                  onChange={handleInputChange}
+                  className="mt-1 w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+                />
+                <div>
+                  <div className="text-white">
+                    Saya menyetujui <a href="/terms" className="text-purple-400 hover:text-purple-300 underline">Terms of Service</a> *
+                  </div>
+                </div>
+              </label>
+              {errors.agreeTerms && (
+                <p className="text-red-400 text-sm">{errors.agreeTerms}</p>
+              )}
+
+              <label className="flex items-start space-x-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="agreePolicy"
+                  checked={formData.agreePolicy}
+                  onChange={handleInputChange}
+                  className="mt-1 w-4 h-4 text-purple-600 bg-slate-700 border-slate-600 rounded focus:ring-purple-500"
+                />
+                <div>
+                  <div className="text-white">
+                    Saya menyetujui <a href="/privacy" className="text-purple-400 hover:text-purple-300 underline">Privacy Policy</a> *
+                  </div>
+                </div>
+              </label>
+              {errors.agreePolicy && (
+                <p className="text-red-400 text-sm">{errors.agreePolicy}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="text-center">
+            <button
+              type="submit"
+              className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 px-12 py-4 rounded-xl font-semibold text-lg transition-all transform hover:scale-105 shadow-lg"
+            >
+              Kirim Request Subdomain
+            </button>
+            <p className="text-slate-400 text-sm mt-4">
+              Setelah submit, Anda akan menerima email konfirmasi. Review biasanya 1-3 hari kerja.
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default SubdomainRequestForm;

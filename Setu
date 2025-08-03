@@ -1,0 +1,910 @@
+# 🚀 SETUP & DEPLOYMENT GUIDE
+## SUBDOMAIN GRATIS VIN NESIA
+
+---
+
+## 📋 **PROJECT CHECKLIST**
+
+### ✅ **Yang Sudah Dibuat:**
+1. **Landing Page** - Design ungu kehitaman yang menarik
+2. **Form Request Subdomain** - Lengkap dengan validasi
+3. **Admin Panel Dashboard** - Management system untuk admin
+4. **Database Schema** - Complete PostgreSQL schema untuk Supabase
+5. **Terms & Privacy Policy** - Legal documents yang comprehensive
+6. **Template AI Collaboration** - Untuk development dengan AI lain
+
+### 🔄 **Yang Sedang Dibutuhkan:**
+1. **Next.js Project Setup** dengan konfigurasi lengkap
+2. **Supabase Configuration** dan environment variables
+3. **Authentication Setup** untuk social logins
+4. **File Upload System** untuk donation screenshots
+5. **Email Notification System**
+6. **DNS Management Integration**
+
+---
+
+## 🛠️ **TECH STACK FINAL**
+
+```
+Frontend Framework:    Next.js 14 + TypeScript
+UI Framework:          Tailwind CSS + shadcn/ui  
+State Management:      Zustand
+Form Handling:         React Hook Form
+Database:              Supabase (PostgreSQL)
+Authentication:        Supabase Auth (Google, GitHub, Discord)
+File Storage:          Supabase Storage
+Hosting:               Vercel (Free Plan)
+CDN:                   Cloudflare
+Email:                 Custom Domain Routing
+Real-time:             Supabase Realtime
+```
+
+---
+
+## 📁 **PROJECT STRUCTURE**
+
+```
+subdomain-vinnesia/
+├── .env.local                 # Environment variables
+├── .env.example              # Environment template
+├── next.config.js            # Next.js configuration
+├── tailwind.config.js        # Tailwind configuration
+├── package.json              # Dependencies
+├── tsconfig.json             # TypeScript configuration
+├── 
+├── src/
+│   ├── app/                  # Next.js 14 App Router
+│   │   ├── globals.css       # Global styles
+│   │   ├── layout.tsx        # Root layout
+│   │   ├── page.tsx          # Landing page
+│   │   ├── loading.tsx       # Loading UI
+│   │   ├── error.tsx         # Error UI
+│   │   ├── not-found.tsx     # 404 page
+│   │   │
+│   │   ├── (auth)/           # Auth group
+│   │   │   ├── login/        # Login page
+│   │   │   │   └── page.tsx
+│   │   │   └── callback/     # OAuth callback
+│   │   │       └── page.tsx
+│   │   │
+│   │   ├── (legal)/          # Legal pages group
+│   │   │   ├── terms/        # Terms of Service
+│   │   │   │   └── page.tsx
+│   │   │   └── privacy/      # Privacy Policy
+│   │   │       └── page.tsx
+│   │   │
+│   │   ├── dashboard/        # User dashboard
+│   │   │   ├── page.tsx      # Dashboard home
+│   │   │   ├── layout.tsx    # Dashboard layout
+│   │   │   ├── create/       # Create subdomain
+│   │   │   │   └── page.tsx
+│   │   │   ├── subdomains/   # Manage subdomains
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [id]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── donations/    # Donation management
+│   │   │   │   └── page.tsx
+│   │   │   └── profile/      # User profile
+│   │   │       └── page.tsx
+│   │   │
+│   │   ├── admin/            # Admin panel
+│   │   │   ├── page.tsx      # Admin dashboard
+│   │   │   ├── layout.tsx    # Admin layout
+│   │   │   ├── login/        # Admin login
+│   │   │   │   └── page.tsx
+│   │   │   ├── users/        # User management
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [id]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── subdomains/   # Subdomain management
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [id]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── donations/    # Donation verification
+│   │   │   │   ├── page.tsx
+│   │   │   │   └── [id]/
+│   │   │   │       └── page.tsx
+│   │   │   ├── settings/     # System settings
+│   │   │   │   └── page.tsx
+│   │   │   └── logs/         # Activity logs
+│   │   │       └── page.tsx
+│   │   │
+│   │   └── api/              # API Routes
+│   │       ├── auth/         # Authentication
+│   │       │   ├── callback/
+│   │       │   └── logout/
+│   │       ├── subdomains/   # Subdomain management
+│   │       │   ├── route.ts
+│   │       │   ├── [id]/
+│   │       │   └── check-availability/
+│   │       ├── donations/    # Donation handling
+│   │       │   ├── route.ts
+│   │       │   ├── [id]/
+│   │       │   └── upload/
+│   │       ├── admin/        # Admin operations
+│   │       │   ├── users/
+│   │       │   ├── subdomains/
+│   │       │   ├── donations/
+│   │       │   └── settings/
+│   │       ├── notifications/ # Notifications
+│   │       │   └── route.ts
+│   │       └── stats/        # Public stats
+│   │           └── route.ts
+│   │
+│   ├── components/           # React components
+│   │   ├── ui/              # shadcn/ui components
+│   │   │   ├── button.tsx
+│   │   │   ├── input.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── dropdown-menu.tsx
+│   │   │   ├── form.tsx
+│   │   │   ├── table.tsx
+│   │   │   ├── toast.tsx
+│   │   │   └── ...
+│   │   │
+│   │   ├── layout/          # Layout components
+│   │   │   ├── Header.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   ├── Sidebar.tsx
+│   │   │   └── Navigation.tsx
+│   │   │
+│   │   ├── forms/           # Form components
+│   │   │   ├── SubdomainRequestForm.tsx
+│   │   │   ├── DonationForm.tsx
+│   │   │   ├── ProfileForm.tsx
+│   │   │   └── AdminLoginForm.tsx
+│   │   │
+│   │   ├── tables/          # Table components
+│   │   │   ├── SubdomainsTable.tsx
+│   │   │   ├── UsersTable.tsx
+│   │   │   ├── DonationsTable.tsx
+│   │   │   └── LogsTable.tsx
+│   │   │
+│   │   ├── charts/          # Chart components (recharts)
+│   │   │   ├── StatsChart.tsx
+│   │   │   ├── UsageChart.tsx
+│   │   │   └── DonationChart.tsx
+│   │   │
+│   │   └── common/          # Common components
+│   │       ├── LoadingSpinner.tsx
+│   │       ├── ErrorBoundary.tsx
+│   │       ├── NotificationToast.tsx
+│   │       └── ConfirmDialog.tsx
+│   │
+│   ├── lib/                 # Utility libraries
+│   │   ├── supabase.ts      # Supabase client
+│   │   ├── supabase-admin.ts # Admin client
+│   │   ├── auth.ts          # Authentication helpers
+│   │   ├── utils.ts         # Utility functions
+│   │   ├── validations.ts   # Form validations
+│   │   ├── constants.ts     # App constants
+│   │   ├── email.ts         # Email utilities
+│   │   └── dns.ts           # DNS management
+│   │
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useAuth.ts       # Authentication hook
+│   │   ├── useSubdomains.ts # Subdomain data hook
+│   │   ├── useDonations.ts  # Donation data hook
+│   │   ├── useNotifications.ts # Notifications hook
+│   │   └── useLocalStorage.ts # Local storage hook
+│   │
+│   ├── stores/              # Zustand stores
+│   │   ├── authStore.ts     # Authentication state
+│   │   ├── subdomainStore.ts # Subdomain state
+│   │   ├── notificationStore.ts # Notifications state
+│   │   └── adminStore.ts    # Admin state
+│   │
+│   ├── types/               # TypeScript types
+│   │   ├── auth.ts          # Auth types
+│   │   ├── subdomain.ts     # Subdomain types
+│   │   ├── donation.ts      # Donation types
+│   │   ├── user.ts          # User types
+│   │   └── admin.ts         # Admin types
+│   │
+│   └── middleware.ts        # Next.js middleware
+│
+├── public/                  # Static assets
+│   ├── favicon.ico
+│   ├── logo.png
+│   ├── qris.png            # QRIS image
+│   └── icons/
+│       ├── google.svg
+│       ├── github.svg
+│       └── discord.svg
+│
+├── docs/                    # Documentation
+│   ├── README.md
+│   ├── API.md
+│   ├── DEPLOYMENT.md
+│   └── CONTRIBUTING.md
+│
+└── scripts/                 # Utility scripts
+    ├── setup-db.sql        # Database setup
+    ├── seed-data.sql       # Sample data
+    └── backup.sh           # Backup script
+```
+
+---
+
+## 🔐 **ENVIRONMENT VARIABLES**
+
+### `.env.local` (Production)
+```bash
+# ===============================================
+# SUPABASE CONFIGURATION
+# ===============================================
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# ===============================================
+# AUTHENTICATION
+# ===============================================
+NEXTAUTH_URL=https://subdomain.vinnesia.my.id
+NEXTAUTH_SECRET=your-nextauth-secret-key
+
+# Admin credentials
+ADMIN_EMAILS=admin.vinnesia@gmail.com
+ADMIN_PASSWORD=admin123
+
+# ===============================================
+# DATABASE
+# ===============================================
+DATABASE_URL=postgresql://postgres:[password]@db.[project].supabase.co:5432/postgres
+
+# ===============================================
+# EMAIL CONFIGURATION
+# ===============================================
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=admin@vinnesia.my.id
+SMTP_PASS=your-app-password
+FROM_EMAIL=admin@vinnesia.my.id
+SUPPORT_EMAIL=support@vinnesia.my.id
+BUSINESS_EMAIL=Vin.nesia.id@gmail.com
+
+# ===============================================
+# CLOUDFLARE CONFIGURATION
+# ===============================================
+CLOUDFLARE_API_TOKEN=your-cloudflare-token
+CLOUDFLARE_ZONE_ID=your-zone-id
+CLOUDFLARE_EMAIL=your-cloudflare-email
+
+# ===============================================
+# DNS CONFIGURATION
+# ===============================================
+DOMAIN_NAME=vinnesia.my.id
+SUBDOMAIN_DOMAIN=vinnesia.my.id
+
+# ===============================================
+# FILE UPLOAD
+# ===============================================
+MAX_FILE_SIZE=5242880  # 5MB in bytes
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/webp
+
+# ===============================================
+# RATE LIMITING
+# ===============================================
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=900  # 15 minutes
+
+# ===============================================
+# MONITORING & ANALYTICS
+# ===============================================
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+SENTRY_DSN=your-sentry-dsn
+
+# ===============================================
+# FEATURE FLAGS
+# ===============================================
+MAINTENANCE_MODE=false
+REGISTRATION_ENABLED=true
+DONATIONS_ENABLED=true
+```
+
+### `.env.example` (Template)
+```bash
+# Copy this file to .env.local and fill in your values
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+
+# Authentication
+NEXTAUTH_URL=
+NEXTAUTH_SECRET=
+ADMIN_EMAILS=
+ADMIN_PASSWORD=
+
+# Database
+DATABASE_URL=
+
+# Email
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+FROM_EMAIL=
+SUPPORT_EMAIL=
+BUSINESS_EMAIL=
+
+# Cloudflare
+CLOUDFLARE_API_TOKEN=
+CLOUDFLARE_ZONE_ID=
+CLOUDFLARE_EMAIL=
+
+# DNS
+DOMAIN_NAME=
+SUBDOMAIN_DOMAIN=
+
+# File Upload
+MAX_FILE_SIZE=5242880
+ALLOWED_FILE_TYPES=image/jpeg,image/png,image/webp
+
+# Rate Limiting
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=900
+
+# Monitoring
+NEXT_PUBLIC_GA_ID=
+SENTRY_DSN=
+
+# Feature Flags
+MAINTENANCE_MODE=false
+REGISTRATION_ENABLED=true
+DONATIONS_ENABLED=true
+```
+
+---
+
+## 📦 **DEPENDENCIES**
+
+### `package.json`
+```json
+{
+  "name": "subdomain-vinnesia",
+  "version": "1.0.0",
+  "description": "Platform subdomain gratis untuk semua",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "db:generate": "supabase gen types typescript --project-id your-project-id > src/types/supabase.ts",
+    "db:reset": "supabase db reset",
+    "db:seed": "supabase db seed",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.4",
+    
+    "@supabase/supabase-js": "^2.44.4",
+    "@supabase/auth-helpers-nextjs": "^0.10.0",
+    "@supabase/auth-helpers-react": "^0.5.0",
+    
+    "tailwindcss": "^3.4.6",
+    "postcss": "^8.4.39",
+    "autoprefixer": "^10.4.19",
+    
+    "@radix-ui/react-alert-dialog": "^1.1.1",
+    "@radix-ui/react-avatar": "^1.1.0",
+    "@radix-ui/react-button": "^0.1.0",
+    "@radix-ui/react-card": "^0.1.0",
+    "@radix-ui/react-dialog": "^1.1.1",
+    "@radix-ui/react-dropdown-menu": "^2.1.1",
+    "@radix-ui/react-form": "^0.1.0",
+    "@radix-ui/react-icons": "^1.3.0",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-popover": "^1.1.1",
+    "@radix-ui/react-progress": "^1.1.0",
+    "@radix-ui/react-select": "^2.1.1",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.1.0",
+    "@radix-ui/react-table": "^0.1.0",
+    "@radix-ui/react-tabs": "^1.1.0",
+    "@radix-ui/react-toast": "^1.2.1",
+    
+    "lucide-react": "^0.263.1",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.4.0",
+    
+    "zustand": "^4.5.4",
+    "react-hook-form": "^7.52.1",
+    "@hookform/resolvers": "^3.9.0",
+    "zod": "^3.23.8",
+    
+    "recharts": "^2.12.7",
+    "date-fns": "^3.6.0",
+    "nanoid": "^5.0.7",
+    
+    "nodemailer": "^6.9.14",
+    "@types/nodemailer": "^6.4.15",
+    
+    "cloudflare": "^3.4.0",
+    
+    "@sentry/nextjs": "^8.20.0",
+    
+    "next-themes": "^0.3.0",
+    "sonner": "^1.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
+    
+    "prettier": "^3.3.3",
+    "prettier-plugin-tailwindcss": "^0.6.5",
+    
+    "jest": "^29.7.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.4.8",
+    
+    "supabase": "^1.183.5"
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "npm": ">=9.0.0"
+  }
+}
+```
+
+---
+
+## 🚀 **DEPLOYMENT STEPS**
+
+### **Phase 1: Setup Supabase (30 minutes)**
+
+1. **Create Supabase Project**
+   ```bash
+   # Go to https://supabase.com/dashboard
+   # Click "New Project"
+   # Name: VIN NESIA Subdomain
+   # Region: Southeast Asia (Singapore)
+   # Database Password: [secure-password]
+   ```
+
+2. **Run Database Schema**
+   ```sql
+   -- Copy the entire SQL schema from our Database Schema artifact
+   -- Run in Supabase SQL Editor
+   -- This creates all tables, functions, triggers, and RLS policies
+   ```
+
+3. **Configure Authentication**
+   ```bash
+   # In Supabase Dashboard > Authentication > Providers
+   # Enable Google OAuth
+   # Enable GitHub OAuth  
+   # Enable Discord OAuth
+   # Set redirect URLs:
+   # - https://subdomain.vinnesia.my.id/auth/callback
+   # - http://localhost:3000/auth/callback (for development)
+   ```
+
+4. **Setup Storage**
+   ```bash
+   # Buckets are created via SQL schema
+   # donation-screenshots (private)
+   # site-assets (public)
+   ```
+
+5. **Configure Email Templates**
+   ```bash
+   # In Supabase Dashboard > Authentication > Email Templates
+   # Customize confirmation, recovery, and magic link emails
+   # Use your domain: admin@vinnesia.my.id
+   ```
+
+### **Phase 2: Setup Next.js Project (45 minutes)**
+
+1. **Initialize Project**
+   ```bash
+   npx create-next-app@latest subdomain-vinnesia --typescript --tailwind --eslint --app --src-dir
+   cd subdomain-vinnesia
+   ```
+
+2. **Install Dependencies**
+   ```bash
+   npm install @supabase/supabase-js @supabase/auth-helpers-nextjs
+   npm install @radix-ui/react-* lucide-react class-variance-authority clsx tailwind-merge
+   npm install zustand react-hook-form @hookform/resolvers zod
+   npm install recharts date-fns nanoid nodemailer cloudflare
+   npm install @sentry/nextjs next-themes sonner
+   ```
+
+3. **Setup shadcn/ui**
+   ```bash
+   npx shadcn-ui@latest init
+   npx shadcn-ui@latest add button input card dialog dropdown-menu form table toast
+   ```
+
+4. **Configure Environment**
+   ```bash
+   cp .env.example .env.local
+   # Fill in all environment variables
+   ```
+
+### **Phase 3: Implement Components (2-3 hours)**
+
+1. **Copy Components from Artifacts**
+   - Landing Page → `src/app/page.tsx`
+   - Subdomain Form → `src/components/forms/SubdomainRequestForm.tsx`
+   - Admin Dashboard → `src/app/admin/page.tsx`
+
+2. **Create API Routes**
+   ```typescript
+   // src/app/api/subdomains/route.ts
+   // src/app/api/donations/route.ts  
+   // src/app/api/admin/route.ts
+   // src/app/api/auth/callback/route.ts
+   ```
+
+3. **Setup Authentication**
+   ```typescript
+   // src/lib/supabase.ts - Client setup
+   // src/lib/auth.ts - Auth helpers
+   // src/middleware.ts - Route protection
+   ```
+
+### **Phase 4: Cloudflare Configuration (30 minutes)**
+
+1. **DNS Setup**
+   ```bash
+   # In Cloudflare Dashboard
+   # Add A record: subdomain.vinnesia.my.id → Vercel IP
+   # Enable proxy (orange cloud)
+   # SSL/TLS: Full (strict)
+   ```
+
+2. **Email Routing**
+   ```bash
+   # Cloudflare > Email > Email Routing
+   # Enable email routing for vinnesia.my.id
+   # Add custom addresses:
+   # - admin@vinnesia.my.id → your-email@gmail.com
+   # - support@vinnesia.my.id → your-email@gmail.com
+   ```
+
+3. **API Token**
+   ```bash
+   # Cloudflare > My Profile > API Tokens
+   # Create token with Zone:Edit permissions
+   # Copy token to CLOUDFLARE_API_TOKEN
+   ```
+
+### **Phase 5: Vercel Deployment (15 minutes)**
+
+1. **Connect GitHub**
+   ```bash
+   # Push code to GitHub repository
+   # Connect to Vercel dashboard
+   # Import project from GitHub
+   ```
+
+2. **Configure Environment Variables**
+   ```bash
+   # In Vercel Dashboard > Settings > Environment Variables
+   # Add all variables from .env.local
+   # Make sure to set NODE_ENV=production
+   ```
+
+3. **Domain Configuration**
+   ```bash
+   # Vercel > Domains
+   # Add custom domain: subdomain.vinnesia.my.id
+   # Configure DNS in Cloudflare
+   ```
+
+### **Phase 6: Testing & Launch (1 hour)**
+
+1. **Test Core Features**
+   ```bash
+   # Test user registration with social login
+   # Test subdomain request flow
+   # Test admin login and approval
+   # Test donation upload
+   # Test email notifications
+   ```
+
+2. **Performance Optimization**
+   ```bash
+   # Run Lighthouse audit
+   # Optimize images and assets
+   # Test Core Web Vitals
+   # Configure caching headers
+   ```
+
+3. **Security Check**
+   ```bash
+   # Test RLS policies
+   # Verify admin access controls
+   # Check rate limiting
+   # Validate input sanitization
+   ```
+
+---
+
+## 🔧 **CONFIGURATION FILES**
+
+### `next.config.js`
+```javascript
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    appDir: true,
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.supabase.co',
+        port: '',
+        pathname: '/storage/v1/object/public/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      },
+    ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+        ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/admin/:path*',
+        destination: '/admin/:path*',
+      },
+    ];
+  },
+};
+
+module.exports = nextConfig;
+```
+
+### `tailwind.config.js`
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  darkMode: ["class"],
+  content: [
+    './pages/**/*.{ts,tsx}',
+    './components/**/*.{ts,tsx}',
+    './app/**/*.{ts,tsx}',
+    './src/**/*.{ts,tsx}',
+  ],
+  theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
+    extend: {
+      colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: 0 },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: 0 },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+}
+```
+
+### `middleware.ts`
+```typescript
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  // Protect dashboard routes
+  if (req.nextUrl.pathname.startsWith('/dashboard')) {
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', req.url))
+    }
+  }
+
+  // Protect admin routes
+  if (req.nextUrl.pathname.startsWith('/admin')) {
+    if (!session) {
+      return NextResponse.redirect(new URL('/admin/login', req.url))
+    }
+    
+    // Check if user is admin
+    const { data: user } = await supabase
+      .from('users')
+      .select('email')
+      .eq('id', session.user.id)
+      .single()
+    
+    const adminEmails = process.env.ADMIN_EMAILS?.split(',') || []
+    if (!user || !adminEmails.includes(user.email)) {
+      return NextResponse.redirect(new URL('/', req.url))
+    }
+  }
+
+  return res
+}
+
+export const config = {
+  matcher: ['/dashboard/:path*', '/admin/:path*']
+}
+```
+
+---
+
+## 📈 **MONITORING & MAINTENANCE**
+
+### **Performance Monitoring**
+```bash
+# Vercel Analytics (built-in)
+# Google Analytics 4
+# Sentry for error tracking
+# Uptime monitoring via UptimeRobot
+```
+
+### **Database Maintenance**
+```sql
+-- Weekly cleanup job
+DELETE FROM public.notifications WHERE expires_at < NOW();
+DELETE FROM public.admin_logs WHERE created_at < NOW() - INTERVAL '90 days';
+
+-- Update system stats
+REFRESH MATERIALIZED VIEW IF EXISTS public.dashboard_stats;
+```
+
+### **Backup Strategy**
+```bash
+# Supabase automatic backups (daily)
+# Manual exports for critical data
+# Code backup via GitHub
+# Environment variables backup (secure location)
+```
+
+---
+
+## 🎯 **POST-LAUNCH CHECKLIST**
+
+### **Week 1: Launch**
+- [ ] Deploy to production
+- [ ] Test all user flows
+- [ ] Monitor error rates
+- [ ] Check email deliverability
+- [ ] Verify DNS propagation
+
+### **Week 2: Optimization**
+- [ ] Analyze user behavior
+- [ ] Optimize performance
+- [ ] Fix reported bugs
+- [ ] Add missing features
+- [ ] Improve UX based on feedback
+
+### **Month 1: Growth**
+- [ ] SEO optimization
+- [ ] Content marketing
+- [ ] Community building
+- [ ] Feature requests analysis
+- [ ] Scale infrastructure
+
+---
+
+## 🤝 **SUPPORT & MAINTENANCE**
+
+### **Regular Tasks**
+- **Daily**: Monitor uptime and errors
+- **Weekly**: Review pending requests and donations
+- **Monthly**: Update dependencies and security patches
+- **Quarterly**: Performance audit and optimization
+
+### **Emergency Contacts**
+- **Technical Issues**: admin@vinnesia.my.id
+- **User Support**: support@vinnesia.my.id
+- **Business Inquiries**: Vin.nesia.id@gmail.com
+
+---
+
+## 🎉 **CONGRATULATIONS!**
+
+Setelah mengikuti guide ini, Anda akan memiliki:
+
+✅ **Platform subdomain gratis yang fully functional**
+✅ **Admin panel yang powerful untuk management**
+✅ **Authentication system yang secure**
+✅ **Donation system dengan QRIS integration**
+✅ **Real-time notifications**
+✅ **Professional UI/UX dengan tema ungu kehitaman**
+✅ **Scalable architecture untuk growth**
+
+**SUBDOMAIN GRATIS VIN NESIA** siap melayani ribuan pengguna di seluruh dunia! 🚀💜
+
+---
+
+*Made with 💜 for the community by VIN NESIA*
