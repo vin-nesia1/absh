@@ -1164,19 +1164,31 @@
             }
             
             validateFile(file) {
-                const maxSize = 50 * 1024 * 1024; // 50MB
-                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/heic', 'image/heif', 'application/pdf'];
+                const maxSize = 100 * 1024 * 1024; // 100MB (increased limit)
+                const allowedTypes = [
+                    'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 
+                    'image/bmp', 'image/webp', 'image/tiff', 'image/tif',
+                    'image/heic', 'image/heif', 'image/avif', 'image/svg+xml',
+                    'application/pdf'
+                ];
                 
                 if (file.size > maxSize) {
-                    this.showStatusMessage('❌ File too large. Maximum size: 50MB', 'error');
+                    this.showStatusMessage(`❌ File too large: ${(file.size / 1024 / 1024).toFixed(2)} MB. Maximum size: 100MB`, 'error');
                     return false;
                 }
                 
                 if (!allowedTypes.includes(file.type)) {
-                    this.showStatusMessage('❌ Unsupported file type. Please use image or PDF files.', 'error');
+                    this.showStatusMessage(`❌ Unsupported file type: ${file.type}. Please use image files (JPEG, PNG, GIF, BMP, WebP, TIFF, HEIC, AVIF) or PDF.`, 'error');
                     return false;
                 }
                 
+                // Additional validation for common issues
+                if (file.size < 1024) {
+                    this.showStatusMessage('❌ File too small. Please select a valid image file.', 'error');
+                    return false;
+                }
+                
+                console.log(`✅ File validation passed: ${file.name} (${file.type}, ${(file.size / 1024).toFixed(2)} KB)`);
                 return true;
             }
             
@@ -1317,25 +1329,360 @@
                 return code ? { data: code.data, format: 'QR Code (High Contrast)' } : null;
             }
             
-            detectWithRotation(ctx, width, height) {
-                if (typeof jsQR === 'undefined') {
-                    return null;
+            detectWithAdaptiveThreshold(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                // Adaptive threshold algorithm
+                const blockSize = 15;
+                const C = 10;
+                
+                for (let y = 0; y < height; y++) {
+                    for (let x = 0; x < width; x++) {
+                        const idx = (y * width + x) * 4;
+                        
+                        // Calculate local mean
+                        let sum = 0, count = 0;
+                        for (let dy = -blockSize; dy <= blockSize; dy++) {
+                            for (let dx = -blockSize; dx <= blockSize; dx++) {
+                                const ny = y + dy, nx = x + dx;
+                                if (ny >= 0 && ny < height && nx >= 0 && nx < width) {
+                                    const nidx = (ny * width + nx) * 4;
+                                    const gray = 0.299 * data[nidx] + 0.587 * data[nidx + 1] + 0.114 * data[nidx + 2];
+                                    sum += gray;
+                                    count++;
+                                }
+                            }
+                        }
+                        
+                        const mean = sum / count;
+                        const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                        const threshold = gray > (mean - C) ? 255 : 0;
+                        
+                        data[idx] = data[idx + 1] = data[idx + 2] = threshold;
+                    }
                 }
                 
-                // Try rotating the image
+                const code = jsQR(data, width, height);
+                return code ? { data: code.data, format: 'QR Code (Adaptive Threshold)' } : null;
+            }
+            
+            detectWithGrayscale(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                // Convert to grayscale with different weights
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = Math.round(0.21 * data[i] + 0.72 * data[i + 1] + 0.07 * data[i + 2]);
+                    data[i] = data[i + 1] = data[i + 2] = gray;
+                }
+                
+                const code = jsQR(data, width, height);
+                return code ? { data: code.data, format: 'QR Code (Custom Grayscale)' } : null;
+            }
+            
+            detectWithChannelSeparation(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                // Try each color channel separately
+                const channels = ['red', 'green', 'blue'];
+                
+                for (let channel = 0; channel < 3; channel++) {
+                    const channelData = new Uint8ClampedArray(data);
+                    
+                    for (let i = 0; i < channelData.length; i += 4) {
+                        const value = channelData[i + channel];
+                        channelData[i] = channelData[i + 1] = channelData[i + 2] = value;
+                    }
+                    
+                    const code = jsQR(channelData, width, height);
+                    if (code) {
+                        return { data: code.data, format: `QR Code (${channels[channel]} channel)` };
+                    }
+                }
+                
+                return null;
+            }
+            
+            detectWithRotation(ctx, width, height, angle = 90) {
+                if (typeof jsQR === 'undefined') return null;
+                
                 const canvas = document.createElement('canvas');
                 const newCtx = canvas.getContext('2d');
-                canvas.width = height;
-                canvas.height = width;
                 
-                newCtx.translate(height / 2, width / 2);
-                newCtx.rotate(Math.PI / 2);
+                // Calculate new dimensions based on rotation
+                const radians = (angle * Math.PI) / 180;
+                const cos = Math.abs(Math.cos(radians));
+                const sin = Math.abs(Math.sin(radians));
+                const newWidth = Math.round(width * cos + height * sin);
+                const newHeight = Math.round(width * sin + height * cos);
+                
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                
+                newCtx.translate(newWidth / 2, newHeight / 2);
+                newCtx.rotate(radians);
                 newCtx.drawImage(ctx.canvas, -width / 2, -height / 2);
                 
-                const imageData = newCtx.getImageData(0, 0, height, width);
-                const code = jsQR(imageData.data, height, width);
+                const imageData = newCtx.getImageData(0, 0, newWidth, newHeight);
+                const code = jsQR(imageData.data, newWidth, newHeight);
                 
-                return code ? { data: code.data, format: 'QR Code (Rotated)' } : null;
+                return code ? { data: code.data, format: `QR Code (Rotated ${angle}°)` } : null;
+            }
+            
+            detectWithBlur(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                const original = new Uint8ClampedArray(data);
+                
+                // Apply Gaussian blur
+                const kernel = [1, 2, 1, 2, 4, 2, 1, 2, 1];
+                const kernelSum = 16;
+                
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        const idx = (y * width + x) * 4;
+                        
+                        for (let c = 0; c < 3; c++) {
+                            let sum = 0;
+                            let ki = 0;
+                            
+                            for (let ky = -1; ky <= 1; ky++) {
+                                for (let kx = -1; kx <= 1; kx++) {
+                                    const pidx = ((y + ky) * width + (x + kx)) * 4;
+                                    sum += original[pidx + c] * kernel[ki++];
+                                }
+                            }
+                            
+                            data[idx + c] = sum / kernelSum;
+                        }
+                    }
+                }
+                
+                const code = jsQR(data, width, height);
+                return code ? { data: code.data, format: 'QR Code (Blur Enhanced)' } : null;
+            }
+            
+            detectWithSharpen(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                const original = new Uint8ClampedArray(data);
+                
+                // Sharpening kernel
+                const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
+                
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        const idx = (y * width + x) * 4;
+                        
+                        for (let c = 0; c < 3; c++) {
+                            let sum = 0;
+                            let ki = 0;
+                            
+                            for (let ky = -1; ky <= 1; ky++) {
+                                for (let kx = -1; kx <= 1; kx++) {
+                                    const pidx = ((y + ky) * width + (x + kx)) * 4;
+                                    sum += original[pidx + c] * kernel[ki++];
+                                }
+                            }
+                            
+                            data[idx + c] = Math.max(0, Math.min(255, sum));
+                        }
+                    }
+                }
+                
+                const code = jsQR(data, width, height);
+                return code ? { data: code.data, format: 'QR Code (Sharpened)' } : null;
+            }
+            
+            detectWithEdgeDetection(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                const original = new Uint8ClampedArray(data);
+                
+                // Sobel edge detection
+                const sobelX = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+                const sobelY = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+                
+                for (let y = 1; y < height - 1; y++) {
+                    for (let x = 1; x < width - 1; x++) {
+                        const idx = (y * width + x) * 4;
+                        
+                        let gx = 0, gy = 0;
+                        let ki = 0;
+                        
+                        for (let ky = -1; ky <= 1; ky++) {
+                            for (let kx = -1; kx <= 1; kx++) {
+                                const pidx = ((y + ky) * width + (x + kx)) * 4;
+                                const gray = 0.299 * original[pidx] + 0.587 * original[pidx + 1] + 0.114 * original[pidx + 2];
+                                
+                                gx += gray * sobelX[ki];
+                                gy += gray * sobelY[ki];
+                                ki++;
+                            }
+                        }
+                        
+                        const magnitude = Math.sqrt(gx * gx + gy * gy);
+                        const value = magnitude > 50 ? 255 : 0;
+                        data[idx] = data[idx + 1] = data[idx + 2] = value;
+                    }
+                }
+                
+                const code = jsQR(data, width, height);
+                return code ? { data: code.data, format: 'QR Code (Edge Detection)' } : null;
+            }
+            
+            detectWithScale(ctx, width, height, scale) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const newWidth = Math.round(width * scale);
+                const newHeight = Math.round(height * scale);
+                
+                const canvas = document.createElement('canvas');
+                const newCtx = canvas.getContext('2d');
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                
+                newCtx.imageSmoothingEnabled = scale < 1;
+                newCtx.imageSmoothingQuality = 'high';
+                newCtx.drawImage(ctx.canvas, 0, 0, newWidth, newHeight);
+                
+                const imageData = newCtx.getImageData(0, 0, newWidth, newHeight);
+                const code = jsQR(imageData.data, newWidth, newHeight);
+                
+                return code ? { data: code.data, format: `QR Code (Scale ${scale}x)` } : null;
+            }
+            
+            detectInRegions(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                // Divide image into overlapping regions
+                const regions = [
+                    { x: 0, y: 0, w: width * 0.6, h: height * 0.6 },
+                    { x: width * 0.4, y: 0, w: width * 0.6, h: height * 0.6 },
+                    { x: 0, y: height * 0.4, w: width * 0.6, h: height * 0.6 },
+                    { x: width * 0.4, y: height * 0.4, w: width * 0.6, h: height * 0.6 },
+                    { x: width * 0.2, y: height * 0.2, w: width * 0.6, h: height * 0.6 }
+                ];
+                
+                for (let i = 0; i < regions.length; i++) {
+                    const region = regions[i];
+                    const imageData = ctx.getImageData(region.x, region.y, region.w, region.h);
+                    const code = jsQR(imageData.data, region.w, region.h);
+                    
+                    if (code) {
+                        return { data: code.data, format: `QR Code (Region ${i + 1})` };
+                    }
+                }
+                
+                return null;
+            }
+            
+            detectWithPerspectiveCorrection(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                // Simple perspective correction attempt
+                const canvas = document.createElement('canvas');
+                const newCtx = canvas.getContext('2d');
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Apply slight perspective transformation
+                newCtx.setTransform(1, 0.1, 0.1, 1, 0, 0);
+                newCtx.drawImage(ctx.canvas, 0, 0);
+                
+                const imageData = newCtx.getImageData(0, 0, width, height);
+                const code = jsQR(imageData.data, width, height);
+                
+                return code ? { data: code.data, format: 'QR Code (Perspective Corrected)' } : null;
+            }
+            
+            detectWithNoiseReduction(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                const original = new Uint8ClampedArray(data);
+                
+                // Median filter for noise reduction
+                const filterSize = 3;
+                const offset = Math.floor(filterSize / 2);
+                
+                for (let y = offset; y < height - offset; y++) {
+                    for (let x = offset; x < width - offset; x++) {
+                        const idx = (y * width + x) * 4;
+                        
+                        for (let c = 0; c < 3; c++) {
+                            const values = [];
+                            
+                            for (let fy = -offset; fy <= offset; fy++) {
+                                for (let fx = -offset; fx <= offset; fx++) {
+                                    const fidx = ((y + fy) * width + (x + fx)) * 4;
+                                    values.push(original[fidx + c]);
+                                }
+                            }
+                            
+                            values.sort((a, b) => a - b);
+                            data[idx + c] = values[Math.floor(values.length / 2)];
+                        }
+                    }
+                }
+                
+                const code = jsQR(data, width, height);
+                return code ? { data: code.data, format: 'QR Code (Noise Reduced)' } : null;
+            }
+            
+            detectWithHistogramEqualization(ctx, width, height) {
+                if (typeof jsQR === 'undefined') return null;
+                
+                const imageData = ctx.getImageData(0, 0, width, height);
+                const data = imageData.data;
+                
+                // Convert to grayscale and build histogram
+                const histogram = new Array(256).fill(0);
+                const grayscale = new Array(data.length / 4);
+                
+                for (let i = 0; i < data.length; i += 4) {
+                    const gray = Math.round(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+                    grayscale[i / 4] = gray;
+                    histogram[gray]++;
+                }
+                
+                // Calculate cumulative distribution
+                const cdf = new Array(256);
+                cdf[0] = histogram[0];
+                for (let i = 1; i < 256; i++) {
+                    cdf[i] = cdf[i - 1] + histogram[i];
+                }
+                
+                // Normalize CDF
+                const totalPixels = width * height;
+                for (let i = 0; i < 256; i++) {
+                    cdf[i] = Math.round((cdf[i] * 255) / totalPixels);
+                }
+                
+                // Apply histogram equalization
+                for (let i = 0; i < grayscale.length; i++) {
+                    const equalizedValue = cdf[grayscale[i]];
+                    const pixelIdx = i * 4;
+                    data[pixelIdx] = data[pixelIdx + 1] = data[pixelIdx + 2] = equalizedValue;
+                }
+                
+                const code = jsQR(data, width, height);
+                return code ? { data: code.data, format: 'QR Code (Histogram Equalized)' } : null;
             }
             
             async pasteFromClipboard() {
@@ -1365,6 +1712,9 @@
                 
                 const scanTime = this.scanStartTime ? Date.now() - this.scanStartTime : 0;
                 
+                // Clear any progress intervals
+                this.clearProcessingIndicators();
+                
                 this.displayResult(decodedText, format, method, scanTime);
                 this.showActionPanel();
                 this.updateScanStats(scanTime);
@@ -1373,6 +1723,18 @@
                 // Auto-stop camera scan after success
                 if (this.isScanning) {
                     setTimeout(() => this.stopScan(), 1000);
+                }
+                
+                // Log successful detection
+                console.log(`🎉 Scan Success: ${format} detected with "${method}" in ${scanTime}ms`);
+                console.log(`📊 Total scans completed: ${this.scanCount}`);
+            }
+            
+            clearProcessingIndicators() {
+                // Clear any active progress intervals
+                if (this.progressInterval) {
+                    clearInterval(this.progressInterval);
+                    this.progressInterval = null;
                 }
             }
             
@@ -1386,35 +1748,189 @@
                 const resultDiv = document.getElementById('result');
                 const timeStr = scanTime ? `${scanTime}ms` : 'N/A';
                 
+                // Clear any processing indicators
+                this.clearProcessingIndicators();
+                
+                // Determine result quality indicator
+                let qualityIndicator = '🎯';
+                if (scanTime < 500) qualityIndicator = '⚡';
+                else if (scanTime < 1000) qualityIndicator = '🚀';
+                else if (scanTime < 3000) qualityIndicator = '✅';
+                
                 resultDiv.innerHTML = `
                     <div class="status-message status-success">
-                        <span>✅</span>
+                        <span>${qualityIndicator}</span>
                         <div>
-                            <strong>Scan Successful!</strong><br>
-                            Format: ${format} | Method: ${method} | Time: ${timeStr}
+                            <strong>Ultra-Advanced Scan Successful!</strong><br>
+                            <strong>Format:</strong> ${format}<br>
+                            <strong>Method:</strong> ${method}<br>
+                            <strong>Processing Time:</strong> ${timeStr}<br>
+                            <strong>Data Length:</strong> ${text.length} characters
                         </div>
                     </div>
-                    <div style="margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; word-break: break-all;">
-                        ${this.formatResult(text)}
+                    <div style="margin-top: 1.5rem; padding: 1.5rem; background: rgba(0,0,0,0.4); border-radius: 12px; border-left: 4px solid #00f5a0;">
+                        <div style="font-family: 'Monaco', 'Consolas', monospace; word-break: break-all; font-size: 0.95rem; line-height: 1.6;">
+                            ${this.formatResult(text)}
+                        </div>
                     </div>
                 `;
                 
                 // Check if result is a URL
                 this.checkForUrl(text);
+                
+                console.log(`📋 Result displayed: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`);
             }
             
             formatResult(text) {
-                // Format different types of data
+                // Enhanced result formatting with better detection
                 if (this.isUrl(text)) {
-                    return `<span style="color: #74b9ff;">🔗 ${text}</span>`;
+                    return `<div style="color: #74b9ff; margin-bottom: 0.5rem;"><strong>🔗 URL Detected:</strong></div><div style="color: #ddd;">${text}</div>`;
                 } else if (this.isEmail(text)) {
-                    return `<span style="color: #00cec9;">📧 ${text}</span>`;
+                    return `<div style="color: #00cec9; margin-bottom: 0.5rem;"><strong>📧 Email Address:</strong></div><div style="color: #ddd;">${text}</div>`;
                 } else if (this.isPhone(text)) {
-                    return `<span style="color: #fdcb6e;">📞 ${text}</span>`;
+                    return `<div style="color: #fdcb6e; margin-bottom: 0.5rem;"><strong>📞 Phone Number:</strong></div><div style="color: #ddd;">${text}</div>`;
                 } else if (this.isWifi(text)) {
-                    return `<span style="color: #a29bfe;">📶 WiFi Configuration</span><br><pre>${text}</pre>`;
+                    return this.formatWifiInfo(text);
+                } else if (this.isVCard(text)) {
+                    return this.formatVCardInfo(text);
+                } else if (this.isSMS(text)) {
+                    return this.formatSMSInfo(text);
+                } else if (this.isGeoLocation(text)) {
+                    return this.formatGeoInfo(text);
+                } else if (this.isCalendarEvent(text)) {
+                    return this.formatCalendarInfo(text);
+                } else if (this.isCrypto(text)) {
+                    return `<div style="color: #f39c12; margin-bottom: 0.5rem;"><strong>₿ Cryptocurrency Address:</strong></div><div style="color: #ddd; font-family: monospace;">${text}</div>`;
+                } else if (this.isJSON(text)) {
+                    return `<div style="color: #e17055; margin-bottom: 0.5rem;"><strong>📄 JSON Data:</strong></div><div style="color: #ddd;"><pre style="white-space: pre-wrap; font-size: 0.85rem;">${this.prettyPrintJSON(text)}</pre></div>`;
                 } else {
-                    return `<span style="color: #ddd;">${text}</span>`;
+                    return `<div style="color: #a29bfe; margin-bottom: 0.5rem;"><strong>📝 Text Data:</strong></div><div style="color: #ddd;">${text}</div>`;
+                }
+            }
+            
+            formatWifiInfo(text) {
+                const wifiMatch = text.match(/WIFI:T:([^;]*);S:([^;]*);P:([^;]*);H:([^;]*);/);
+                if (wifiMatch) {
+                    const [, type, ssid, password, hidden] = wifiMatch;
+                    return `<div style="color: #a29bfe; margin-bottom: 0.5rem;"><strong>📶 WiFi Configuration:</strong></div>
+                            <div style="color: #ddd; line-height: 1.8;">
+                                <strong>Network:</strong> ${ssid}<br>
+                                <strong>Security:</strong> ${type || 'Open'}<br>
+                                <strong>Password:</strong> ${password || 'None'}<br>
+                                <strong>Hidden:</strong> ${hidden === 'true' ? 'Yes' : 'No'}
+                            </div>`;
+                }
+                return `<div style="color: #a29bfe; margin-bottom: 0.5rem;"><strong>📶 WiFi Data:</strong></div><div style="color: #ddd;"><pre>${text}</pre></div>`;
+            }
+            
+            formatVCardInfo(text) {
+                const name = this.extractVCardField(text, 'FN');
+                const phone = this.extractVCardField(text, 'TEL');
+                const email = this.extractVCardField(text, 'EMAIL');
+                const org = this.extractVCardField(text, 'ORG');
+                
+                return `<div style="color: #00cec9; margin-bottom: 0.5rem;"><strong>👤 Contact Card (vCard):</strong></div>
+                        <div style="color: #ddd; line-height: 1.8;">
+                            ${name ? `<strong>Name:</strong> ${name}<br>` : ''}
+                            ${phone ? `<strong>Phone:</strong> ${phone}<br>` : ''}
+                            ${email ? `<strong>Email:</strong> ${email}<br>` : ''}
+                            ${org ? `<strong>Organization:</strong> ${org}<br>` : ''}
+                        </div>`;
+            }
+            
+            formatSMSInfo(text) {
+                const smsMatch = text.match(/smsto:([^:]*):?(.*)/i) || text.match(/sms:([^:]*):?(.*)/i);
+                if (smsMatch) {
+                    const [, number, message] = smsMatch;
+                    return `<div style="color: #fdcb6e; margin-bottom: 0.5rem;"><strong>💬 SMS Message:</strong></div>
+                            <div style="color: #ddd; line-height: 1.8;">
+                                <strong>To:</strong> ${number}<br>
+                                <strong>Message:</strong> ${message || 'Empty'}
+                            </div>`;
+                }
+                return `<div style="color: #fdcb6e; margin-bottom: 0.5rem;"><strong>💬 SMS Data:</strong></div><div style="color: #ddd;">${text}</div>`;
+            }
+            
+            formatGeoInfo(text) {
+                const geoMatch = text.match(/geo:([^,]*),([^,]*),?([^?]*)\??(.*)/i);
+                if (geoMatch) {
+                    const [, lat, lng, alt, query] = geoMatch;
+                    return `<div style="color: #00b894; margin-bottom: 0.5rem;"><strong>📍 Geographic Location:</strong></div>
+                            <div style="color: #ddd; line-height: 1.8;">
+                                <strong>Latitude:</strong> ${lat}°<br>
+                                <strong>Longitude:</strong> ${lng}°<br>
+                                ${alt ? `<strong>Altitude:</strong> ${alt}m<br>` : ''}
+                                ${query ? `<strong>Query:</strong> ${decodeURIComponent(query)}<br>` : ''}
+                            </div>`;
+                }
+                return `<div style="color: #00b894; margin-bottom: 0.5rem;"><strong>📍 Location Data:</strong></div><div style="color: #ddd;">${text}</div>`;
+            }
+            
+            formatCalendarInfo(text) {
+                const lines = text.split('\n');
+                const summary = lines.find(line => line.startsWith('SUMMARY:'))?.substring(8);
+                const dtstart = lines.find(line => line.startsWith('DTSTART:'))?.substring(8);
+                const dtend = lines.find(line => line.startsWith('DTEND:'))?.substring(6);
+                
+                return `<div style="color: #fd79a8; margin-bottom: 0.5rem;"><strong>📅 Calendar Event:</strong></div>
+                        <div style="color: #ddd; line-height: 1.8;">
+                            ${summary ? `<strong>Event:</strong> ${summary}<br>` : ''}
+                            ${dtstart ? `<strong>Start:</strong> ${this.formatDateTime(dtstart)}<br>` : ''}
+                            ${dtend ? `<strong>End:</strong> ${this.formatDateTime(dtend)}<br>` : ''}
+                        </div>`;
+            }
+            
+            // Helper functions for enhanced formatting
+            isVCard(text) {
+                return text.includes('BEGIN:VCARD') && text.includes('END:VCARD');
+            }
+            
+            isSMS(text) {
+                return /^smsto?:/i.test(text);
+            }
+            
+            isGeoLocation(text) {
+                return /^geo:/i.test(text);
+            }
+            
+            isCalendarEvent(text) {
+                return text.includes('BEGIN:VEVENT') && text.includes('END:VEVENT');
+            }
+            
+            isCrypto(text) {
+                // Bitcoin, Ethereum, etc.
+                return /^(bitcoin:|ethereum:|[13][a-km-zA-HJ-NP-Z1-9]{25,34}|0x[a-fA-F0-9]{40})/.test(text);
+            }
+            
+            isJSON(text) {
+                try {
+                    JSON.parse(text);
+                    return true;
+                } catch {
+                    return false;
+                }
+            }
+            
+            extractVCardField(vcard, field) {
+                const regex = new RegExp(`${field}:([^\\n\\r]*)`, 'i');
+                const match = vcard.match(regex);
+                return match ? match[1].trim() : null;
+            }
+            
+            formatDateTime(dateTime) {
+                if (dateTime.length === 8) {
+                    return `${dateTime.substring(0, 4)}-${dateTime.substring(4, 6)}-${dateTime.substring(6, 8)}`;
+                } else if (dateTime.length >= 15) {
+                    return `${dateTime.substring(0, 4)}-${dateTime.substring(4, 6)}-${dateTime.substring(6, 8)} ${dateTime.substring(9, 11)}:${dateTime.substring(11, 13)}:${dateTime.substring(13, 15)}`;
+                }
+                return dateTime;
+            }
+            
+            prettyPrintJSON(text) {
+                try {
+                    return JSON.stringify(JSON.parse(text), null, 2);
+                } catch {
+                    return text;
                 }
             }
             
